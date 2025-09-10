@@ -33,23 +33,14 @@ jobs:
           DEFAULT_BRANCH: main
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
-          # Linting configuration - only enable specific linters
+          # Linting configuration
           VALIDATE_ALL_CODEBASE: false
           
-          # Explicitly enable only these linters
+          # Only validate these file types
           VALIDATE_JSON: true
           VALIDATE_YAML: true
           VALIDATE_MARKDOWN: true
           VALIDATE_GITHUB_ACTIONS: true
-          VALIDATE_BASH: false  # Disable to avoid shellcheck warnings for now
-          
-          # Explicitly disable JavaScript/TypeScript linting - we run ESLint separately
-          VALIDATE_JAVASCRIPT_ES: false
-          VALIDATE_JAVASCRIPT_STANDARD: false
-          VALIDATE_TYPESCRIPT_ES: false
-          VALIDATE_TYPESCRIPT_STANDARD: false
-          VALIDATE_JSX: false
-          VALIDATE_TSX: false
           
           # Super-Linter settings
           LOG_LEVEL: WARN
