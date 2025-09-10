@@ -208,6 +208,7 @@ app.use((req, res) => {
 });
 
 // Error handler
+// eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   // Use try-catch to prevent logger errors during testing
   try {
