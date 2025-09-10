@@ -111,11 +111,13 @@ jobs:
 
       - name: 📊 Upload coverage reports
         if: matrix.node-version == '20.x'
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           file: ./coverage/lcov.info
-          fail_ci_if_error: true
+          fail_ci_if_error: false  # Don't fail CI if external service is unavailable
           verbose: true
+          token: ${{ secrets.CODECOV_TOKEN }}  # Will work when token is added
+        continue-on-error: true  # Allow workflow to continue even if this step fails
 
       - name: 📈 Comment coverage report
         if: matrix.node-version == '20.x'
@@ -123,6 +125,30 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           lcov-file: ./coverage/lcov.info
+        continue-on-error: true
+
+      - name: 📊 Generate coverage summary
+        if: matrix.node-version == '20.x'
+        run: |
+          echo "## 📊 Test Coverage Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f coverage/coverage-summary.json ]; then
+            node -e "
+              const fs = require('fs');
+              const coverage = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'));
+              const total = coverage.total;
+              console.log('| Metric | Coverage | Status |');
+              console.log('|--------|----------|--------|');
+              console.log('| Lines | ' + total.lines.pct + '% | ' + (total.lines.pct >= 80 ? '✅' : '❌') + ' |');
+              console.log('| Functions | ' + total.functions.pct + '% | ' + (total.functions.pct >= 80 ? '✅' : '❌') + ' |');
+              console.log('| Branches | ' + total.branches.pct + '% | ' + (total.branches.pct >= 80 ? '✅' : '❌') + ' |');
+              console.log('| Statements | ' + total.statements.pct + '% | ' + (total.statements.pct >= 80 ? '✅' : '❌') + ' |');
+              console.log('');
+              console.log('**Overall Coverage:** ' + Math.min(total.lines.pct, total.functions.pct, total.branches.pct, total.statements.pct) + '%');
+            " >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Coverage summary not available" >> $GITHUB_STEP_SUMMARY
+          fi
 
   # Job 3: Commit Message Validation
   commitlint:
