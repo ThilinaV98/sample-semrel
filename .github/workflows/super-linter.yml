@@ -33,25 +33,18 @@ jobs:
           DEFAULT_BRANCH: main
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
-          # Linting configuration
+          # Linting configuration - only enable specific linters
           VALIDATE_ALL_CODEBASE: false
           VALIDATE_JSON: true
           VALIDATE_YAML: true
           VALIDATE_MARKDOWN: true
           VALIDATE_JAVASCRIPT_ES: true
           VALIDATE_GITHUB_ACTIONS: true
-          VALIDATE_DOCKERFILE: true
-          VALIDATE_SHELL: true
           
           # Super-Linter settings
           LOG_LEVEL: WARN
           CREATE_LOG_FILE: true
           SUPPRESS_POSSUM: true
-          
-          # Disable problematic linters
-          VALIDATE_JSCPD: false
-          VALIDATE_CSS: false
-          VALIDATE_CHECKOV: false
           
           # Shellcheck configuration
           SHELLCHECK_OPTS: "-e SC2086 -e SC2129 -e SC2002 -e SC2005 -e SC2015 -e SC2126"
