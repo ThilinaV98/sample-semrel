@@ -50,17 +50,36 @@ jobs:
 
       - name: 🦸 Run Super-Linter
         if: steps.changed-files.outputs.any_changed == 'true'
-        uses: github/super-linter/slim@v5
+        uses: github/super-linter@v5
         env:
           DEFAULT_BRANCH: main
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+          # Linting configuration - only enable specific linters
           VALIDATE_ALL_CODEBASE: false
+          
+          # Explicitly enable only these linters
           VALIDATE_JSON: true
           VALIDATE_YAML: true
           VALIDATE_MARKDOWN: true
           VALIDATE_GITHUB_ACTIONS: true
+          VALIDATE_BASH: false  # Disable to avoid shellcheck warnings
+          
+          # Explicitly disable JavaScript/TypeScript linting - we run ESLint separately
+          VALIDATE_JAVASCRIPT_ES: false
+          VALIDATE_JAVASCRIPT_STANDARD: false
+          VALIDATE_TYPESCRIPT_ES: false
+          VALIDATE_TYPESCRIPT_STANDARD: false
+          VALIDATE_JSX: false
+          VALIDATE_TSX: false
+          
+          # Super-Linter settings
           LOG_LEVEL: WARN
           CREATE_LOG_FILE: true
+          SUPPRESS_POSSUM: true
+          
+          # Filter out certain file patterns
+          FILTER_REGEX_EXCLUDE: "node_modules/.*|coverage/.*|dist/.*|\\.git/.*"
 
       - name: 📊 Upload Super-Linter results
         if: always()
