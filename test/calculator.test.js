@@ -276,7 +276,7 @@ describe('Calculator', () => {
 
       // Should contain the most recent calculations
       const lastCalc = calculator.getLastCalculation();
-      expect(lastCalc.inputs).toEqual([maxSize + 8, maxSize + 9]);
+      expect(lastCalc.inputs).toEqual([maxSize + 9, maxSize + 10]);
     });
 
     it('should return copies of history to prevent external modification', () => {

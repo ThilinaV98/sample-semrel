@@ -188,15 +188,6 @@ app.get('/api/users/:id', (req, res) => {
   }
 });
 
-// Error handling middleware
-app.use((error, req, res) => {
-  logger.error('Unhandled error:', error.message);
-  res.status(500).json({
-    error: 'Internal server error',
-    timestamp: new Date().toISOString(),
-  });
-});
-
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({
@@ -210,6 +201,14 @@ app.use((req, res) => {
 // Error handler
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
+  // Handle JSON parsing errors
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({
+      error: 'Invalid JSON',
+      timestamp: new Date().toISOString(),
+    });
+  }
+
   // Use try-catch to prevent logger errors during testing
   try {
     logger.error('Unhandled error:', err.message || err);

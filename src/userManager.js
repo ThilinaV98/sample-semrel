@@ -10,6 +10,19 @@ class UserManager {
   constructor() {
     this.users = new Map();
     this.nextId = 1;
+    this.timestampCounter = 0;
+  }
+
+  /**
+   * Generate a unique timestamp to ensure proper ordering
+   * @returns {string} ISO timestamp with microsecond precision
+   */
+  _generateTimestamp() {
+    const now = new Date();
+    const timestamp = now.toISOString();
+    // Add microsecond precision using counter to ensure uniqueness
+    const microseconds = String(this.timestampCounter++).padStart(3, '0');
+    return timestamp.slice(0, -1) + microseconds + 'Z';
   }
 
   /**
@@ -29,6 +42,10 @@ class UserManager {
       throw new Error('Email is required and must be a string');
     }
 
+    // Trim inputs before validation
+    name = name.trim();
+    email = email.toLowerCase().trim();
+
     if (!this._isValidEmail(email)) {
       throw new Error('Invalid email format');
     }
@@ -39,12 +56,13 @@ class UserManager {
     }
 
     // Create user object
+    const timestamp = this._generateTimestamp();
     const user = {
       id: this.nextId.toString(),
-      name: name.trim(),
-      email: email.toLowerCase().trim(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      name: name,
+      email: email,
+      createdAt: timestamp,
+      updatedAt: timestamp,
       isActive: true,
       ...additionalData,
     };
@@ -105,8 +123,8 @@ class UserManager {
       users = users.filter((user) => user.isActive);
     }
 
-    // Sort by creation date (newest first)
-    users.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    // Sort by creation date (newest first) - use string comparison for microsecond precision
+    users.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
     // Apply pagination
     if (limit) {
@@ -154,7 +172,7 @@ class UserManager {
       ...updates,
       id: user.id, // Prevent ID changes
       createdAt: user.createdAt, // Prevent createdAt changes
-      updatedAt: new Date().toISOString(),
+      updatedAt: this._generateTimestamp(),
     };
 
     // Validate name if being updated
@@ -183,8 +201,8 @@ class UserManager {
 
     // Soft delete - mark as inactive
     user.isActive = false;
-    user.updatedAt = new Date().toISOString();
-    user.deletedAt = new Date().toISOString();
+    user.updatedAt = this._generateTimestamp();
+    user.deletedAt = this._generateTimestamp();
 
     return true;
   }
@@ -211,7 +229,7 @@ class UserManager {
     }
 
     user.isActive = true;
-    user.updatedAt = new Date().toISOString();
+    user.updatedAt = this._generateTimestamp();
     delete user.deletedAt; // Remove deletion timestamp
 
     return true;

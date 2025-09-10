@@ -120,7 +120,10 @@ class Calculator {
    * @returns {Array} Array of historical calculations
    */
   getHistory() {
-    return [...this.history];
+    return this.history.map((calc) => ({
+      ...calc,
+      inputs: [...calc.inputs],
+    }));
   }
 
   /**
