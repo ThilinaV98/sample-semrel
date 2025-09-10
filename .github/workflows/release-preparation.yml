@@ -222,7 +222,7 @@ jobs:
           echo "*This release branch was automatically created and is ready for QA testing.*" >> release-notes.md
 
       - name: 📊 Upload release notes
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: release-notes-${{ needs.validate-source.outputs.next_version }}
           path: release-notes.md

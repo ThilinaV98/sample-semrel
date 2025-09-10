@@ -2,7 +2,7 @@
 
 /**
  * Sample Semantic Release Application
- * 
+ *
  * A simple Express.js web server demonstrating semantic versioning
  * and automated release workflows with GitHub Actions.
  */
@@ -38,7 +38,7 @@ const userManager = new UserManager();
 // Routes
 app.get('/', (req, res) => {
   const uptime = process.uptime();
-  
+
   res.json({
     name: packageInfo.name,
     version: packageInfo.version,
@@ -51,8 +51,8 @@ app.get('/', (req, res) => {
       health: '/health',
       version: '/version',
       calculator: '/api/calculator',
-      users: '/api/users'
-    }
+      users: '/api/users',
+    },
   });
 });
 
@@ -63,9 +63,9 @@ app.get('/health', (req, res) => {
     uptime: process.uptime(),
     version: packageInfo.version,
     memory: process.memoryUsage(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
   };
-  
+
   res.json(healthCheck);
 });
 
@@ -75,7 +75,7 @@ app.get('/version', (req, res) => {
     name: packageInfo.name,
     releaseDate: new Date().toISOString(),
     gitCommit: process.env.GITHUB_SHA || 'unknown',
-    buildNumber: process.env.GITHUB_RUN_NUMBER || 'local'
+    buildNumber: process.env.GITHUB_RUN_NUMBER || 'local',
   });
 });
 
@@ -83,19 +83,19 @@ app.get('/version', (req, res) => {
 app.post('/api/calculator/add', (req, res) => {
   try {
     const { a, b } = req.body;
-    
+
     if (typeof a !== 'number' || typeof b !== 'number') {
       return res.status(400).json({ error: 'Both a and b must be numbers' });
     }
-    
+
     const result = calculator.add(a, b);
     logger.info(`Addition performed: ${a} + ${b} = ${result}`);
-    
-    res.json({ 
+
+    res.json({
       operation: 'addition',
       inputs: { a, b },
       result,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     logger.error('Addition operation failed:', error.message);
@@ -106,19 +106,19 @@ app.post('/api/calculator/add', (req, res) => {
 app.post('/api/calculator/multiply', (req, res) => {
   try {
     const { a, b } = req.body;
-    
+
     if (typeof a !== 'number' || typeof b !== 'number') {
       return res.status(400).json({ error: 'Both a and b must be numbers' });
     }
-    
+
     const result = calculator.multiply(a, b);
     logger.info(`Multiplication performed: ${a} * ${b} = ${result}`);
-    
-    res.json({ 
+
+    res.json({
       operation: 'multiplication',
       inputs: { a, b },
       result,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     logger.error('Multiplication operation failed:', error.message);
@@ -133,7 +133,7 @@ app.get('/api/users', (req, res) => {
     res.json({
       users,
       count: users.length,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     logger.error('Failed to get users:', error.message);
@@ -144,26 +144,26 @@ app.get('/api/users', (req, res) => {
 app.post('/api/users', (req, res) => {
   try {
     const { name, email } = req.body;
-    
+
     if (!name || !email) {
       return res.status(400).json({ error: 'Name and email are required' });
     }
-    
+
     const user = userManager.createUser(name, email);
     logger.info(`User created: ${user.name} (${user.email})`);
-    
+
     res.status(201).json({
       message: 'User created successfully',
       user,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     logger.error('Failed to create user:', error.message);
-    
+
     if (error.message.includes('already exists')) {
       return res.status(409).json({ error: error.message });
     }
-    
+
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -172,14 +172,14 @@ app.get('/api/users/:id', (req, res) => {
   try {
     const { id } = req.params;
     const user = userManager.getUserById(id);
-    
+
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    
+
     res.json({
       user,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     logger.error('Failed to get user:', error.message);
@@ -192,7 +192,7 @@ app.use((error, req, res) => {
   logger.error('Unhandled error:', error.message);
   res.status(500).json({
     error: 'Internal server error',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
@@ -202,7 +202,7 @@ app.use((req, res) => {
     error: 'Endpoint not found',
     path: req.path,
     method: req.method,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 

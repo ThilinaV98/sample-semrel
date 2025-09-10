@@ -74,7 +74,7 @@ jobs:
 
       - name: 📊 Upload test results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: hotfix-test-results
           path: coverage/
@@ -254,7 +254,7 @@ jobs:
           git log -1 --pretty=format:"%s%n%n%b" >> hotfix-summary.md
 
       - name: 📊 Upload hotfix summary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: hotfix-summary-${{ github.sha }}
           path: hotfix-summary.md

@@ -109,7 +109,7 @@ jobs:
 
       - name: 📊 Upload test coverage
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-coverage
           path: coverage/
@@ -250,7 +250,7 @@ jobs:
           fi
 
       - name: 📊 Upload release metrics
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: release-metrics-${{ needs.semantic-release.outputs.new_release_version }}
           path: release-metrics.md
