@@ -74,15 +74,15 @@ jobs:
             COMMITS=$(git log --pretty=format:"%s")
           else
             echo "Checking commits since $LAST_TAG"
-            COMMITS=$(git log --pretty=format:"%s" $LAST_TAG..HEAD)
+            COMMITS=$(git log --pretty=format:"%s" "${LAST_TAG}..HEAD")
           fi
           
           echo "Analyzing commits for release potential..."
           
           # Check for different types of commits
           FEAT_COUNT=$(echo "$COMMITS" | grep -c "^feat" || echo "0")
-          FIX_COUNT=$(echo "$COMMITS" | grep -c "^fix\|^perf" || echo "0")
-          BREAKING_COUNT=$(echo "$COMMITS" | grep -c "BREAKING CHANGE\|!:" || echo "0")
+          FIX_COUNT=$(echo "$COMMITS" | grep -c "^fix\\|^perf" || echo "0")
+          BREAKING_COUNT=$(echo "$COMMITS" | grep -c "BREAKING CHANGE\\|!:" || echo "0")
           
           echo "Features: $FEAT_COUNT"
           echo "Fixes/Perf: $FIX_COUNT"
@@ -147,10 +147,9 @@ jobs:
 
       - name: 🎁 Run Semantic Release
         id: semantic-release
-        uses: cycjimmy/semantic-release-action@v4
+        uses: action-for-semantic-release/semantic-release@v2
         with:
-          semantic_version: 22.0.12
-          extra_plugins: |
+          additional_packages: |
             @semantic-release/changelog
             @semantic-release/git
         env:

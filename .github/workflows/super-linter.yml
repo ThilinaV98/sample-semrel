@@ -1,0 +1,68 @@
+name: 🦸 Super-Linter
+
+# Trigger on multiple events according to branching strategy
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+# Permissions for GITHUB_TOKEN
+permissions:
+  contents: read
+  packages: read
+  statuses: write
+
+jobs:
+  super-linter:
+    name: 🦸 Lint Codebase
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🦸 Run Super-Linter
+        uses: github/super-linter@v5
+        env:
+          # Default branch configuration
+          DEFAULT_BRANCH: main
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+          # Linting configuration
+          VALIDATE_ALL_CODEBASE: false
+          VALIDATE_JSON: true
+          VALIDATE_YAML: true
+          VALIDATE_MARKDOWN: true
+          VALIDATE_JAVASCRIPT_ES: true
+          VALIDATE_GITHUB_ACTIONS: true
+          VALIDATE_DOCKERFILE: true
+          VALIDATE_SHELL: true
+          
+          # Super-Linter settings
+          LOG_LEVEL: WARN
+          CREATE_LOG_FILE: true
+          SUPPRESS_POSSUM: true
+          
+          # Disable problematic linters
+          VALIDATE_JSCPD: false
+          VALIDATE_CSS: false
+          VALIDATE_CHECKOV: false
+          
+          # Shellcheck configuration
+          SHELLCHECK_OPTS: "-e SC2086 -e SC2129 -e SC2002 -e SC2005 -e SC2015 -e SC2126"
+          
+          # Filter out certain file patterns
+          FILTER_REGEX_EXCLUDE: "node_modules/.*|coverage/.*|dist/.*|\\.git/.*"
+
+      - name: 📊 Upload Super-Linter Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: super-linter-results
+          path: super-linter.log
+          retention-days: 30

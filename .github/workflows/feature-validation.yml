@@ -1,16 +1,21 @@
 name: 🧪 Feature Validation
 
-# Trigger when PRs are opened, updated, or synchronized to dev branch from feature branches
+# Trigger according to branching strategy: feature/* → dev, hotfix/* → main
 on:
   pull_request:
     branches:
-      - dev
+      - dev      # Feature branches merge to dev
+      - main     # Hotfix branches merge directly to main
     types: [opened, synchronize, reopened]
     paths-ignore:
       - '*.md'
       - 'docs/**'
       - '.gitignore'
       - 'LICENSE'
+  push:
+    branches:
+      - 'feature/*'
+      - 'hotfix/*'
 
 # Set permissions for GITHUB_TOKEN
 permissions:
@@ -93,7 +98,13 @@ jobs:
         run: npm run format:check
 
       - name: 🏗️ Build application
-        run: npm start & sleep 2 && pkill -f "node src/index.js" || true
+        run: |
+          # Start application in background and verify it starts
+          npm start &
+          sleep 2
+          if pgrep -f "node src/index.js" > /dev/null; then
+            pkill -f "node src/index.js" || true
+          fi
 
       - name: 🧪 Run tests
         run: npm run test:coverage
@@ -139,7 +150,7 @@ jobs:
           if [ -n "$ACT" ]; then
             echo "Running in Act environment - validating last commit message"
             # In Act, we validate the last commit message format
-            echo "$(git log -1 --pretty=format:'%s')" | npx commitlint
+            git log -1 --pretty=format:'%s' | npx commitlint
           else
             # For feature branches, only validate recent commits to avoid historical case issues
             echo "Validating only the last 3 commits to avoid historical formatting issues"

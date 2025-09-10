@@ -89,7 +89,7 @@
       }
     ]
   ],
-  "repositoryUrl": "https://github.com/username/sample-semantic-release.git",
+  "repositoryUrl": "https://github.com/ThilinaV98/sample-semrel.git",
   "tagFormat": "v${version}",
   "ci": true,
   "dryRun": false,
