@@ -128,9 +128,8 @@ class Logger {
   /**
    * Send log entry to external logging service (placeholder)
    * @private
-   * @param {Object} logEntry - Structured log entry
    */
-  _sendToExternalLogger(logEntry) {
+  _sendToExternalLogger() {
     // In a real application, you might send logs to services like:
     // - CloudWatch Logs
     // - Elasticsearch

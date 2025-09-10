@@ -167,7 +167,7 @@ class Calculator {
    */
   getStatistics() {
     const operationCounts = {};
-    let totalCalculations = this.history.length;
+    const totalCalculations = this.history.length;
 
     this.history.forEach(calc => {
       operationCounts[calc.operation] = (operationCounts[calc.operation] || 0) + 1;

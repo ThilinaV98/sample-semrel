@@ -23,4 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 .env.*
-.env
+.env.secrets
+.secrets
+.act-secrets
+*.secrets

@@ -1,0 +1,102 @@
+{
+  "action": "closed",
+  "number": 456,
+  "repository": {
+    "name": "sample-semrel",
+    "full_name": "username/sample-semrel",
+    "owner": {
+      "login": "username",
+      "type": "User"
+    },
+    "default_branch": "main",
+    "clone_url": "https://github.com/username/sample-semrel.git"
+  },
+  "pull_request": {
+    "id": 9876543210,
+    "number": 456,
+    "state": "closed",
+    "locked": false,
+    "title": "Release/v1.2.0 rc.1",
+    "body": "## 🎁 Release 1.2.0-rc.1\n\n**Source Branch:** dev\n**Release Branch:** release/v1.2.0-rc.1\n**Created:** 2024-01-01 15:00:00 UTC\n\n### 📋 Changes in this release:\n\n- feat: add user authentication feature (def456abc789)\n- fix: resolve login validation issue (ghi789jkl012)\n- perf: optimize database queries (mno345pqr678)\n\n### 🧪 QA Testing\n\n- [x] Functional testing completed\n- [x] Performance testing completed  \n- [x] Security testing completed\n- [x] User acceptance testing completed\n\n---\n*This release branch was automatically created and has been approved for production.*",
+    "user": {
+      "login": "release-manager",
+      "type": "User"
+    },
+    "created_at": "2024-01-01T15:00:00Z",
+    "updated_at": "2024-01-01T18:00:00Z",
+    "closed_at": "2024-01-01T18:00:00Z",
+    "merged_at": "2024-01-01T18:00:00Z",
+    "merge_commit_sha": "merge789abc123",
+    "head": {
+      "label": "username:release/v1.2.0-rc.1",
+      "ref": "release/v1.2.0-rc.1", 
+      "sha": "release123def456",
+      "user": {
+        "login": "username"
+      },
+      "repo": {
+        "name": "sample-semrel",
+        "full_name": "username/sample-semrel"
+      }
+    },
+    "base": {
+      "label": "username:main",
+      "ref": "main",
+      "sha": "main456ghi789",
+      "user": {
+        "login": "username"
+      },
+      "repo": {
+        "name": "sample-semrel",
+        "full_name": "username/sample-semrel"
+      }
+    },
+    "draft": false,
+    "merged": true,
+    "mergeable": null,
+    "rebaseable": null,
+    "mergeable_state": "clean",
+    "merged_by": {
+      "login": "release-manager",
+      "type": "User"
+    },
+    "comments": 2,
+    "review_comments": 0,
+    "maintainer_can_modify": false,
+    "commits": 5,
+    "additions": 245,
+    "deletions": 38,
+    "changed_files": 12,
+    "auto_merge": null,
+    "labels": [
+      {
+        "id": 208045946,
+        "name": "release",
+        "color": "0052cc",
+        "default": false,
+        "description": "Production release"
+      },
+      {
+        "id": 208045947,
+        "name": "QA-approved",
+        "color": "0e8a16",
+        "default": false,
+        "description": "Approved by QA team"
+      }
+    ],
+    "milestone": {
+      "id": 1234567,
+      "number": 1,
+      "title": "v1.2.0",
+      "description": "Release milestone for version 1.2.0",
+      "state": "open",
+      "created_at": "2024-01-01T10:00:00Z",
+      "updated_at": "2024-01-01T18:00:00Z",
+      "due_on": "2024-01-05T23:59:59Z"
+    }
+  },
+  "sender": {
+    "login": "release-manager",
+    "type": "User"
+  }
+}

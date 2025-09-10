@@ -137,10 +137,22 @@ jobs:
 
       - name: 🔍 Validate commit messages
         run: |
-          # Get the base branch (usually dev)
-          BASE_SHA=$(git merge-base HEAD origin/dev)
-          # Lint commits from base to HEAD
-          npx commitlint --from $BASE_SHA --to HEAD --verbose
+          # Check if we're running in Act (local testing)
+          if [ -n "$ACT" ]; then
+            echo "Running in Act environment - validating last commit message"
+            # In Act, we validate the last commit message format
+            echo "$(git log -1 --pretty=format:'%s')" | npx commitlint
+          else
+            # In GitHub Actions, validate commits from base branch
+            if git rev-parse --verify origin/dev >/dev/null 2>&1; then
+              BASE_SHA=$(git merge-base HEAD origin/dev)
+              echo "Validating commits from $BASE_SHA to HEAD"
+              npx commitlint --from $BASE_SHA --to HEAD --verbose
+            else
+              echo "origin/dev not found, validating last 10 commits"
+              npx commitlint --from HEAD~10 --to HEAD --verbose
+            fi
+          fi
 
   # Job 4: Security Scan
   security:

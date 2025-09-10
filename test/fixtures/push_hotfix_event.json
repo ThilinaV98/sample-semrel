@@ -1,0 +1,118 @@
+{
+  "ref": "refs/heads/hotfix/critical-security-fix",
+  "before": "0000000000000000000000000000000000000000",
+  "after": "hotfix123abc456",
+  "created": true,
+  "deleted": false,
+  "forced": false,
+  "base_ref": "refs/heads/main",
+  "compare": "https://github.com/username/sample-semrel/compare/hotfix/critical-security-fix",
+  "commits": [
+    {
+      "id": "hotfix123abc456",
+      "tree_id": "hotfixtree123",
+      "distinct": true,
+      "message": "hotfix: patch critical security vulnerability\n\nCVE-2024-0001: Fixed SQL injection vulnerability in user authentication.\nThis is a critical security patch that must be deployed immediately.\n\nBREAKING CHANGE: Updated authentication API response format",
+      "timestamp": "2024-01-01T16:00:00Z",
+      "url": "https://github.com/username/sample-semrel/commit/hotfix123abc456",
+      "author": {
+        "name": "Security Team",
+        "email": "security@example.com",
+        "username": "security-team"
+      },
+      "committer": {
+        "name": "Security Team",
+        "email": "security@example.com",
+        "username": "security-team"
+      },
+      "added": [
+        "src/security/validator.js"
+      ],
+      "removed": [],
+      "modified": [
+        "src/auth.js",
+        "src/database/connection.js",
+        "test/auth.test.js",
+        "SECURITY.md"
+      ]
+    }
+  ],
+  "head_commit": {
+    "id": "hotfix123abc456",
+    "tree_id": "hotfixtree123",
+    "distinct": true,
+    "message": "hotfix: patch critical security vulnerability\n\nCVE-2024-0001: Fixed SQL injection vulnerability in user authentication.\nThis is a critical security patch that must be deployed immediately.\n\nBREAKING CHANGE: Updated authentication API response format",
+    "timestamp": "2024-01-01T16:00:00Z",
+    "url": "https://github.com/username/sample-semrel/commit/hotfix123abc456",
+    "author": {
+      "name": "Security Team",
+      "email": "security@example.com",
+      "username": "security-team"
+    },
+    "committer": {
+      "name": "Security Team",
+      "email": "security@example.com",
+      "username": "security-team"
+    },
+    "added": [
+      "src/security/validator.js"
+    ],
+    "removed": [],
+    "modified": [
+      "src/auth.js",
+      "src/database/connection.js",
+      "test/auth.test.js",
+      "SECURITY.md"
+    ]
+  },
+  "repository": {
+    "id": 123456789,
+    "name": "sample-semrel",
+    "full_name": "username/sample-semrel",
+    "private": false,
+    "owner": {
+      "name": "username",
+      "email": "user@example.com",
+      "login": "username",
+      "type": "User"
+    },
+    "html_url": "https://github.com/username/sample-semrel",
+    "description": "Sample project demonstrating semantic versioning and branching strategy",
+    "fork": false,
+    "url": "https://github.com/username/sample-semrel",
+    "created_at": "2024-01-01T00:00:00Z",
+    "updated_at": "2024-01-01T16:00:00Z",
+    "pushed_at": "2024-01-01T16:00:00Z",
+    "git_url": "git://github.com/username/sample-semrel.git",
+    "ssh_url": "git@github.com:username/sample-semrel.git",
+    "clone_url": "https://github.com/username/sample-semrel.git",
+    "size": 1024,
+    "stargazers_count": 5,
+    "watchers_count": 5,
+    "language": "JavaScript",
+    "has_issues": true,
+    "has_projects": true,
+    "has_wiki": true,
+    "has_pages": false,
+    "forks_count": 0,
+    "archived": false,
+    "disabled": false,
+    "open_issues_count": 0,
+    "license": {
+      "key": "mit",
+      "name": "MIT License"
+    },
+    "forks": 0,
+    "open_issues": 0,
+    "watchers": 5,
+    "default_branch": "main"
+  },
+  "pusher": {
+    "name": "security-team",
+    "email": "security@example.com"
+  },
+  "sender": {
+    "login": "security-team",
+    "type": "User"
+  }
+}

@@ -4,6 +4,10 @@
     {
       "name": "release/*",
       "prerelease": "rc"
+    },
+    {
+      "name": "hotfix/*",
+      "prerelease": "hotfix"
     }
   ],
   "plugins": [
