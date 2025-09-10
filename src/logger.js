@@ -1,6 +1,6 @@
 /**
  * Logger utility class
- * 
+ *
  * Provides structured logging functionality for the sample application.
  * This class demonstrates logging best practices and provides different
  * log levels for various application events.
@@ -9,20 +9,20 @@
 class Logger {
   constructor(context = 'App') {
     this.context = context;
-    this.logLevel = this._getLogLevel();
     this.colors = {
-      ERROR: '\x1b[31m',   // Red
-      WARN: '\x1b[33m',    // Yellow
-      INFO: '\x1b[36m',    // Cyan
-      DEBUG: '\x1b[90m',   // Gray
-      RESET: '\x1b[0m'     // Reset
+      ERROR: '\x1b[31m', // Red
+      WARN: '\x1b[33m', // Yellow
+      INFO: '\x1b[36m', // Cyan
+      DEBUG: '\x1b[90m', // Gray
+      RESET: '\x1b[0m', // Reset
     };
     this.levels = {
       ERROR: 0,
       WARN: 1,
       INFO: 2,
-      DEBUG: 3
+      DEBUG: 3,
     };
+    this.logLevel = this._getLogLevel();
   }
 
   /**
@@ -77,29 +77,33 @@ class Logger {
     const timestamp = new Date().toISOString();
     const color = this.colors[level] || '';
     const reset = this.colors.RESET;
-    
+
     // Format the log entry
     const logEntry = {
       timestamp,
       level,
       context: this.context,
       message,
-      ...(data && { data })
+      ...(data && { data }),
     };
 
     // Console output with color
     if (process.env.NODE_ENV !== 'test') {
       const baseMessage = `${color}[${timestamp}] ${level.padEnd(5)} [${this.context}] ${message}${reset}`;
-      
+
       if (data !== null && data !== undefined) {
+        // eslint-disable-next-line no-console
         console.log(baseMessage);
-        
+
         if (typeof data === 'object') {
+          // eslint-disable-next-line no-console
           console.log(`${color}${JSON.stringify(data, null, 2)}${reset}`);
         } else {
+          // eslint-disable-next-line no-console
           console.log(`${color}${data}${reset}`);
         }
       } else {
+        // eslint-disable-next-line no-console
         console.log(baseMessage);
       }
     }
@@ -117,20 +121,19 @@ class Logger {
   _getLogLevel() {
     const envLogLevel = process.env.LOG_LEVEL || 'INFO';
     const normalizedLevel = envLogLevel.toUpperCase();
-    
+
     if (Object.keys(this.levels).includes(normalizedLevel)) {
       return normalizedLevel;
     }
-    
+
     return 'INFO';
   }
 
   /**
    * Send log entry to external logging service (placeholder)
    * @private
-   * @param {Object} logEntry - Structured log entry
    */
-  _sendToExternalLogger(logEntry) {
+  _sendToExternalLogger() {
     // In a real application, you might send logs to services like:
     // - CloudWatch Logs
     // - Elasticsearch
@@ -138,7 +141,7 @@ class Logger {
     // - DataDog
     // - New Relic
     // etc.
-    
+
     // For now, this is just a placeholder
     if (process.env.EXTERNAL_LOGGING === 'true') {
       // Example: Send to external service
@@ -170,11 +173,11 @@ class Logger {
       duration: `${duration}ms`,
       userAgent: req.get('User-Agent'),
       ip: req.ip || req.connection.remoteAddress,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     const message = `${req.method} ${req.url} ${res.statusCode} ${duration}ms`;
-    
+
     if (res.statusCode >= 400) {
       this.warn(message, logData);
     } else {
@@ -191,7 +194,7 @@ class Logger {
     this.info(`📦 Version: ${config.version || 'unknown'}`);
     this.info(`🌍 Environment: ${config.environment || process.env.NODE_ENV || 'development'}`);
     this.info(`🔧 Log Level: ${this.logLevel}`);
-    
+
     if (config.port) {
       this.info(`📡 Port: ${config.port}`);
     }
@@ -216,7 +219,7 @@ class Logger {
       operation,
       duration: `${duration}ms`,
       ...additionalData,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     const level = duration > 1000 ? 'WARN' : 'INFO'; // Warn if operation takes > 1 second
@@ -232,7 +235,7 @@ class Logger {
       context: this.context,
       logLevel: this.logLevel,
       availableLevels: Object.keys(this.levels),
-      externalLogging: process.env.EXTERNAL_LOGGING === 'true'
+      externalLogging: process.env.EXTERNAL_LOGGING === 'true',
     };
   }
 }
@@ -244,20 +247,20 @@ class Logger {
  */
 function createRequestLogger(context = 'HTTP') {
   const logger = new Logger(context);
-  
+
   return (req, res, next) => {
     const start = Date.now();
-    
+
     res.on('finish', () => {
       const duration = Date.now() - start;
       logger.logRequest(req, res, duration);
     });
-    
+
     next();
   };
 }
 
-module.exports = { 
-  Logger, 
-  createRequestLogger 
+module.exports = {
+  Logger,
+  createRequestLogger,
 };

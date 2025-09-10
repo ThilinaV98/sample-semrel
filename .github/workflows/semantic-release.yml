@@ -74,15 +74,15 @@ jobs:
             COMMITS=$(git log --pretty=format:"%s")
           else
             echo "Checking commits since $LAST_TAG"
-            COMMITS=$(git log --pretty=format:"%s" $LAST_TAG..HEAD)
+            COMMITS=$(git log --pretty=format:"%s" "${LAST_TAG}..HEAD")
           fi
           
           echo "Analyzing commits for release potential..."
           
           # Check for different types of commits
           FEAT_COUNT=$(echo "$COMMITS" | grep -c "^feat" || echo "0")
-          FIX_COUNT=$(echo "$COMMITS" | grep -c "^fix\|^perf" || echo "0")
-          BREAKING_COUNT=$(echo "$COMMITS" | grep -c "BREAKING CHANGE\|!:" || echo "0")
+          FIX_COUNT=$(echo "$COMMITS" | grep -c "^fix\\|^perf" || echo "0")
+          BREAKING_COUNT=$(echo "$COMMITS" | grep -c "BREAKING CHANGE\\|!:" || echo "0")
           
           echo "Features: $FEAT_COUNT"
           echo "Fixes/Perf: $FIX_COUNT"
@@ -109,7 +109,7 @@ jobs:
 
       - name: 📊 Upload test coverage
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-coverage
           path: coverage/
@@ -147,10 +147,9 @@ jobs:
 
       - name: 🎁 Run Semantic Release
         id: semantic-release
-        uses: cycjimmy/semantic-release-action@v4
+        uses: action-for-semantic-release/semantic-release@v2
         with:
-          semantic_version: 22.0.12
-          extra_plugins: |
+          additional_packages: |
             @semantic-release/changelog
             @semantic-release/git
         env:
@@ -200,21 +199,26 @@ jobs:
         run: |
           VERSION="${{ needs.semantic-release.outputs.new_release_version }}"
           
-          # Find and delete the corresponding release branch (if it exists)
-          RELEASE_BRANCH="release/v$VERSION"
-          
-          if git show-ref --verify --quiet refs/remotes/origin/$RELEASE_BRANCH; then
-            echo "🗑️ Deleting release branch: $RELEASE_BRANCH"
-            git push origin --delete $RELEASE_BRANCH
+          # Only clean up release branches after a stable release (not RCs)
+          if [[ ! "$VERSION" =~ -rc\. ]]; then
+            # Clean up any release branches for this major.minor version
+            VERSION_BASE=$(echo "$VERSION" | cut -d. -f1,2)
+            
+            # List all release branches
+            RELEASE_BRANCHES=$(git branch -r | grep "origin/release/v$VERSION_BASE" || echo "")
+            
+            if [ -n "$RELEASE_BRANCHES" ]; then
+              echo "🗑️ Cleaning up release branches for v$VERSION_BASE"
+              for BRANCH in $RELEASE_BRANCHES; do
+                BRANCH_NAME=${BRANCH#origin/}
+                echo "Deleting: $BRANCH_NAME"
+                git push origin --delete "$BRANCH_NAME" || true
+              done
+            else
+              echo "ℹ️ No release branches found to clean up"
+            fi
           else
-            echo "ℹ️ No release branch found to clean up"
-          fi
-          
-          # Also look for release candidate branches
-          RC_BRANCH="release/v${VERSION%-*}"
-          if git show-ref --verify --quiet refs/remotes/origin/$RC_BRANCH; then
-            echo "🗑️ Deleting RC branch: $RC_BRANCH"
-            git push origin --delete $RC_BRANCH
+            echo "ℹ️ Skipping cleanup for RC release: $VERSION"
           fi
 
       - name: 🏷️ Update latest release tag
@@ -245,7 +249,7 @@ jobs:
           fi
 
       - name: 📊 Upload release metrics
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: release-metrics-${{ needs.semantic-release.outputs.new_release_version }}
           path: release-metrics.md

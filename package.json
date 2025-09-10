@@ -1,6 +1,6 @@
 {
   "name": "sample-semantic-release",
-  "version": "0.0.0-development",
+  "version": "1.0.0",
   "description": "Sample project demonstrating semantic versioning and branching strategy",
   "main": "src/index.js",
   "scripts": {
@@ -12,7 +12,11 @@
     "lint:fix": "eslint src test --fix",
     "format": "prettier --write \"src/**/*.js\" \"test/**/*.js\"",
     "format:check": "prettier --check \"src/**/*.js\" \"test/**/*.js\"",
-    "semantic-release": "semantic-release"
+    "semantic-release": "semantic-release",
+    "test:workflows": "./scripts/test-workflows.sh",
+    "test:workflows:dry": "./scripts/test-workflows.sh --dry-run",
+    "test:workflow": "./scripts/test-single-workflow.sh",
+    "validate:workflows": "./scripts/validate-workflows.sh"
   },
   "repository": {
     "type": "git",
@@ -74,6 +78,13 @@
     "collectCoverageFrom": [
       "src/**/*.js",
       "!src/index.js"
+    ],
+    "coverageDirectory": "coverage",
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html",
+      "json-summary"
     ],
     "coverageThreshold": {
       "global": {

@@ -1,0 +1,61 @@
+{
+  "action": "opened",
+  "number": 123,
+  "repository": {
+    "name": "sample-semrel",
+    "full_name": "username/sample-semrel",
+    "owner": {
+      "login": "username",
+      "type": "User"
+    },
+    "default_branch": "main",
+    "clone_url": "https://github.com/username/sample-semrel.git"
+  },
+  "pull_request": {
+    "id": 1234567890,
+    "number": 123,
+    "state": "open",
+    "locked": false,
+    "title": "feat: add new feature",
+    "body": "This PR adds a new feature to the application.\n\n## Changes\n- Added new functionality\n- Updated tests\n- Updated documentation",
+    "user": {
+      "login": "developer",
+      "type": "User"
+    },
+    "created_at": "2024-01-01T00:00:00Z",
+    "updated_at": "2024-01-01T00:00:00Z",
+    "head": {
+      "label": "username:feature/new-feature",
+      "ref": "feature/new-feature",
+      "sha": "abc123def456",
+      "user": {
+        "login": "username"
+      },
+      "repo": {
+        "name": "sample-semrel",
+        "full_name": "username/sample-semrel"
+      }
+    },
+    "base": {
+      "label": "username:dev",
+      "ref": "dev",
+      "sha": "789ghi012jkl",
+      "user": {
+        "login": "username"
+      },
+      "repo": {
+        "name": "sample-semrel",
+        "full_name": "username/sample-semrel"
+      }
+    },
+    "draft": false,
+    "commits": 3,
+    "additions": 150,
+    "deletions": 25,
+    "changed_files": 5
+  },
+  "sender": {
+    "login": "developer",
+    "type": "User"
+  }
+}

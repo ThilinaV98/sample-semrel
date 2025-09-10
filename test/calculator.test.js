@@ -1,6 +1,6 @@
 /**
  * Calculator utility tests
- * 
+ *
  * Unit tests for the Calculator class
  */
 
@@ -215,35 +215,35 @@ describe('Calculator', () => {
     it('should track calculation history', () => {
       calculator.add(2, 3);
       calculator.multiply(4, 5);
-      
+
       const history = calculator.getHistory();
       expect(history).toHaveLength(2);
-      
+
       expect(history[0]).toEqual({
         operation: 'add',
         inputs: [2, 3],
         result: 5,
-        timestamp: expect.any(String)
+        timestamp: expect.any(String),
       });
-      
+
       expect(history[1]).toEqual({
         operation: 'multiply',
         inputs: [4, 5],
         result: 20,
-        timestamp: expect.any(String)
+        timestamp: expect.any(String),
       });
     });
 
     it('should get last calculation', () => {
       calculator.add(2, 3);
       calculator.multiply(4, 5);
-      
+
       const lastCalc = calculator.getLastCalculation();
       expect(lastCalc).toEqual({
         operation: 'multiply',
         inputs: [4, 5],
         result: 20,
-        timestamp: expect.any(String)
+        timestamp: expect.any(String),
       });
     });
 
@@ -255,9 +255,9 @@ describe('Calculator', () => {
     it('should clear history', () => {
       calculator.add(2, 3);
       calculator.multiply(4, 5);
-      
+
       expect(calculator.getHistory()).toHaveLength(2);
-      
+
       calculator.clearHistory();
       expect(calculator.getHistory()).toHaveLength(0);
       expect(calculator.getLastCalculation()).toBeNull();
@@ -265,33 +265,33 @@ describe('Calculator', () => {
 
     it('should limit history size', () => {
       const maxSize = calculator.maxHistorySize;
-      
+
       // Perform more calculations than max history size
       for (let i = 0; i < maxSize + 10; i++) {
         calculator.add(i, i + 1);
       }
-      
+
       const history = calculator.getHistory();
       expect(history).toHaveLength(maxSize);
-      
+
       // Should contain the most recent calculations
       const lastCalc = calculator.getLastCalculation();
-      expect(lastCalc.inputs).toEqual([maxSize + 8, maxSize + 9]);
+      expect(lastCalc.inputs).toEqual([maxSize + 9, maxSize + 10]);
     });
 
     it('should return copies of history to prevent external modification', () => {
       calculator.add(2, 3);
-      
+
       const history1 = calculator.getHistory();
       const history2 = calculator.getHistory();
-      
+
       // Should be different objects
       expect(history1).not.toBe(history2);
       expect(history1[0]).not.toBe(history2[0]);
-      
+
       // Modifying returned history should not affect internal state
       history1[0].result = 999;
-      
+
       const history3 = calculator.getHistory();
       expect(history3[0].result).toBe(5); // Original value preserved
     });
@@ -300,13 +300,13 @@ describe('Calculator', () => {
   describe('Statistics', () => {
     it('should return empty statistics for new calculator', () => {
       const stats = calculator.getStatistics();
-      
+
       expect(stats).toEqual({
         totalCalculations: 0,
         operationCounts: {},
         mostUsedOperation: null,
         historySize: 0,
-        maxHistorySize: 100
+        maxHistorySize: 100,
       });
     });
 
@@ -316,14 +316,14 @@ describe('Calculator', () => {
       calculator.multiply(2, 3);
       calculator.subtract(5, 2);
       calculator.add(6, 7);
-      
+
       const stats = calculator.getStatistics();
-      
+
       expect(stats.totalCalculations).toBe(5);
       expect(stats.operationCounts).toEqual({
         add: 3,
         multiply: 1,
-        subtract: 1
+        subtract: 1,
       });
       expect(stats.mostUsedOperation).toBe('add');
       expect(stats.historySize).toBe(5);
@@ -332,7 +332,7 @@ describe('Calculator', () => {
     it('should handle tie for most used operation', () => {
       calculator.add(1, 2);
       calculator.multiply(2, 3);
-      
+
       const stats = calculator.getStatistics();
       expect(['add', 'multiply']).toContain(stats.mostUsedOperation);
     });

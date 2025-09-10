@@ -1,6 +1,6 @@
 /**
  * Main application tests
- * 
+ *
  * Integration tests for the sample semantic release application
  */
 
@@ -21,9 +21,7 @@ afterAll(() => {
 describe('Sample Semantic Release App', () => {
   describe('GET /', () => {
     it('should return application info', async () => {
-      const response = await request(app)
-        .get('/')
-        .expect(200);
+      const response = await request(app).get('/').expect(200);
 
       expect(response.body).toHaveProperty('name');
       expect(response.body).toHaveProperty('version');
@@ -32,9 +30,7 @@ describe('Sample Semantic Release App', () => {
     });
 
     it('should include all expected endpoints in response', async () => {
-      const response = await request(app)
-        .get('/')
-        .expect(200);
+      const response = await request(app).get('/').expect(200);
 
       const endpoints = response.body.endpoints;
       expect(endpoints).toHaveProperty('health');
@@ -46,9 +42,7 @@ describe('Sample Semantic Release App', () => {
 
   describe('GET /health', () => {
     it('should return health check information', async () => {
-      const response = await request(app)
-        .get('/health')
-        .expect(200);
+      const response = await request(app).get('/health').expect(200);
 
       expect(response.body).toHaveProperty('status', 'healthy');
       expect(response.body).toHaveProperty('timestamp');
@@ -58,9 +52,7 @@ describe('Sample Semantic Release App', () => {
     });
 
     it('should include memory usage information', async () => {
-      const response = await request(app)
-        .get('/health')
-        .expect(200);
+      const response = await request(app).get('/health').expect(200);
 
       const memory = response.body.memory;
       expect(memory).toHaveProperty('rss');
@@ -72,9 +64,7 @@ describe('Sample Semantic Release App', () => {
 
   describe('GET /version', () => {
     it('should return version information', async () => {
-      const response = await request(app)
-        .get('/version')
-        .expect(200);
+      const response = await request(app).get('/version').expect(200);
 
       expect(response.body).toHaveProperty('version');
       expect(response.body).toHaveProperty('name');
@@ -127,15 +117,11 @@ describe('Sample Semantic Release App', () => {
       });
 
       it('should return 400 for missing parameters', async () => {
-        await request(app)
-          .post('/api/calculator/add')
-          .send({ a: 5 })
-          .expect(400);
+        const response1 = await request(app).post('/api/calculator/add').send({ a: 5 }).expect(400);
+        expect(response1.body).toHaveProperty('error');
 
-        await request(app)
-          .post('/api/calculator/add')
-          .send({ b: 3 })
-          .expect(400);
+        const response2 = await request(app).post('/api/calculator/add').send({ b: 3 }).expect(400);
+        expect(response2.body).toHaveProperty('error');
       });
     });
 
@@ -190,9 +176,7 @@ describe('Sample Semantic Release App', () => {
     describe('GET /api/users', () => {
       it('should return empty users array initially', async () => {
         // Note: This may not be empty if other tests created users
-        const response = await request(app)
-          .get('/api/users')
-          .expect(200);
+        const response = await request(app).get('/api/users').expect(200);
 
         expect(response.body).toHaveProperty('users');
         expect(response.body).toHaveProperty('count');
@@ -205,13 +189,10 @@ describe('Sample Semantic Release App', () => {
       it('should create a new user', async () => {
         const newUser = {
           name: 'Test User',
-          email: 'test@example.com'
+          email: 'test@example.com',
         };
 
-        const response = await request(app)
-          .post('/api/users')
-          .send(newUser)
-          .expect(201);
+        const response = await request(app).post('/api/users').send(newUser).expect(201);
 
         expect(response.body).toHaveProperty('message', 'User created successfully');
         expect(response.body).toHaveProperty('user');
@@ -245,21 +226,18 @@ describe('Sample Semantic Release App', () => {
       it('should return 409 for duplicate email', async () => {
         const user = {
           name: 'Test User 1',
-          email: 'duplicate@example.com'
+          email: 'duplicate@example.com',
         };
 
         // Create first user
-        await request(app)
-          .post('/api/users')
-          .send(user)
-          .expect(201);
+        await request(app).post('/api/users').send(user).expect(201);
 
         // Try to create duplicate
         const response = await request(app)
           .post('/api/users')
           .send({
             name: 'Test User 2',
-            email: 'duplicate@example.com'
+            email: 'duplicate@example.com',
           })
           .expect(409);
 
@@ -269,9 +247,7 @@ describe('Sample Semantic Release App', () => {
 
     describe('GET /api/users/:id', () => {
       it('should return 404 for non-existent user', async () => {
-        const response = await request(app)
-          .get('/api/users/999999')
-          .expect(404);
+        const response = await request(app).get('/api/users/999999').expect(404);
 
         expect(response.body).toHaveProperty('error', 'User not found');
       });
@@ -282,16 +258,14 @@ describe('Sample Semantic Release App', () => {
           .post('/api/users')
           .send({
             name: 'Find Me',
-            email: 'findme@example.com'
+            email: 'findme@example.com',
           })
           .expect(201);
 
         const userId = createResponse.body.user.id;
 
         // Then find the user
-        const response = await request(app)
-          .get(`/api/users/${userId}`)
-          .expect(200);
+        const response = await request(app).get(`/api/users/${userId}`).expect(200);
 
         expect(response.body).toHaveProperty('user');
         expect(response.body.user).toHaveProperty('id', userId);
@@ -303,9 +277,7 @@ describe('Sample Semantic Release App', () => {
 
   describe('Error Handling', () => {
     it('should return 404 for non-existent endpoints', async () => {
-      const response = await request(app)
-        .get('/api/nonexistent')
-        .expect(404);
+      const response = await request(app).get('/api/nonexistent').expect(404);
 
       expect(response.body).toHaveProperty('error', 'Endpoint not found');
       expect(response.body).toHaveProperty('path', '/api/nonexistent');
@@ -327,11 +299,7 @@ describe('Sample Semantic Release App', () => {
 
   describe('API Response Format', () => {
     it('should include timestamps in all responses', async () => {
-      const endpoints = [
-        '/',
-        '/health',
-        '/version'
-      ];
+      const endpoints = ['/', '/health', '/version'];
 
       for (const endpoint of endpoints) {
         const response = await request(app).get(endpoint);
@@ -340,9 +308,7 @@ describe('Sample Semantic Release App', () => {
     });
 
     it('should return JSON for all API endpoints', async () => {
-      const response = await request(app)
-        .get('/')
-        .expect('Content-Type', /json/);
+      const response = await request(app).get('/').expect('Content-Type', /json/);
 
       expect(response.status).toBe(200);
     });

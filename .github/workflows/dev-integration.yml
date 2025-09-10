@@ -62,7 +62,7 @@ jobs:
 
       - name: 📊 Upload test results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dev-test-results
           path: |
@@ -140,7 +140,7 @@ jobs:
 
       - name: 📊 Upload release preview
         if: steps.release-notes.outputs.release_ready == 'true'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: release-preview
           path: release-notes.md
@@ -176,7 +176,7 @@ jobs:
           echo "- Test coverage: $(npm run test:coverage --silent 2>&1 | grep -o '[0-9]\+\.[0-9]\+%' | tail -1 || echo 'N/A')" >> quality-report.md
 
       - name: 📊 Upload quality reports
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: quality-reports
           path: |
