@@ -117,9 +117,11 @@ describe('Sample Semantic Release App', () => {
       });
 
       it('should return 400 for missing parameters', async () => {
-        await request(app).post('/api/calculator/add').send({ a: 5 }).expect(400);
+        const response1 = await request(app).post('/api/calculator/add').send({ a: 5 }).expect(400);
+        expect(response1.body).toHaveProperty('error');
 
-        await request(app).post('/api/calculator/add').send({ b: 3 }).expect(400);
+        const response2 = await request(app).post('/api/calculator/add').send({ b: 3 }).expect(400);
+        expect(response2.body).toHaveProperty('error');
       });
     });
 

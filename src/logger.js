@@ -92,14 +92,18 @@ class Logger {
       const baseMessage = `${color}[${timestamp}] ${level.padEnd(5)} [${this.context}] ${message}${reset}`;
 
       if (data !== null && data !== undefined) {
+        // eslint-disable-next-line no-console
         console.log(baseMessage);
 
         if (typeof data === 'object') {
+          // eslint-disable-next-line no-console
           console.log(`${color}${JSON.stringify(data, null, 2)}${reset}`);
         } else {
+          // eslint-disable-next-line no-console
           console.log(`${color}${data}${reset}`);
         }
       } else {
+        // eslint-disable-next-line no-console
         console.log(baseMessage);
       }
     }
