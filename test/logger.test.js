@@ -80,18 +80,18 @@ describe('Logger', () => {
       // Create logger with ERROR level (only ERROR messages should be logged)
       const errorLogger = new Logger('ErrorTest');
       errorLogger.logLevel = 'ERROR';
-      
+
       // Spy on _sendToExternalLogger to count actual log outputs
       const externalLogSpy = jest.spyOn(errorLogger, '_sendToExternalLogger');
-      
-      errorLogger.debug('debug message');  // Should be filtered out
-      errorLogger.info('info message');    // Should be filtered out  
-      errorLogger.warn('warn message');    // Should be filtered out
-      errorLogger.error('error message');  // Should pass through
-      
+
+      errorLogger.debug('debug message'); // Should be filtered out
+      errorLogger.info('info message'); // Should be filtered out
+      errorLogger.warn('warn message'); // Should be filtered out
+      errorLogger.error('error message'); // Should pass through
+
       // Only the error message should have been processed
       expect(externalLogSpy).toHaveBeenCalledTimes(1);
-      
+
       externalLogSpy.mockRestore();
     });
   });
@@ -104,15 +104,15 @@ describe('Logger', () => {
         get: jest.fn().mockReturnValue('Mozilla/5.0'),
         ip: '127.0.0.1',
       };
-      
+
       const mockRes = {
         statusCode: 200,
       };
-      
+
       const spy = jest.spyOn(logger, 'info');
-      
+
       logger.logRequest(mockReq, mockRes, 150);
-      
+
       expect(spy).toHaveBeenCalledWith(
         'GET /test 200 150ms',
         expect.objectContaining({
@@ -122,35 +122,37 @@ describe('Logger', () => {
           duration: '150ms',
         })
       );
-      
+
       spy.mockRestore();
     });
 
     it('should log startup information', () => {
       const spy = jest.spyOn(logger, 'info');
-      
+
       logger.logStartup({ version: '1.0.0', port: 3000 });
-      
+
       expect(spy).toHaveBeenCalledWith('🚀 Application starting up');
       expect(spy).toHaveBeenCalledWith('📦 Version: 1.0.0');
       expect(spy).toHaveBeenCalledWith('📡 Port: 3000');
-      
+
       spy.mockRestore();
     });
 
     it('should log performance metrics', () => {
       const spy = jest.spyOn(logger, '_log');
-      
+
       logger.logPerformance('database-query', 500, { query: 'SELECT * FROM users' });
-      
-      expect(spy).toHaveBeenCalledWith('INFO', 'Performance: database-query completed in 500ms', 
+
+      expect(spy).toHaveBeenCalledWith(
+        'INFO',
+        'Performance: database-query completed in 500ms',
         expect.objectContaining({
           operation: 'database-query',
           duration: '500ms',
           query: 'SELECT * FROM users',
         })
       );
-      
+
       spy.mockRestore();
     });
   });
