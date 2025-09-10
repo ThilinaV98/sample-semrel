@@ -9,7 +9,6 @@
 class Logger {
   constructor(context = 'App') {
     this.context = context;
-    this.logLevel = this._getLogLevel();
     this.colors = {
       ERROR: '\x1b[31m', // Red
       WARN: '\x1b[33m', // Yellow
@@ -23,6 +22,7 @@ class Logger {
       INFO: 2,
       DEBUG: 3,
     };
+    this.logLevel = this._getLogLevel();
   }
 
   /**

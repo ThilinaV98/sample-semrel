@@ -76,6 +76,7 @@ app.get('/version', (req, res) => {
     releaseDate: new Date().toISOString(),
     gitCommit: process.env.GITHUB_SHA || 'unknown',
     buildNumber: process.env.GITHUB_RUN_NUMBER || 'local',
+    timestamp: new Date().toISOString(),
   });
 });
 
@@ -204,6 +205,23 @@ app.use((req, res) => {
     method: req.method,
     timestamp: new Date().toISOString(),
   });
+});
+
+// Error handler
+app.use((err, req, res, next) => {
+  // Use try-catch to prevent logger errors during testing
+  try {
+    logger.error('Unhandled error:', err.message || err);
+  } catch (logError) {
+    // Fallback if logger fails during testing
+  }
+  
+  if (!res.headersSent) {
+    res.status(500).json({
+      error: 'Internal server error',
+      timestamp: new Date().toISOString(),
+    });
+  }
 });
 
 // Start server
