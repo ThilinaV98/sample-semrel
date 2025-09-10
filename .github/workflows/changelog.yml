@@ -1,0 +1,38 @@
+name: 📝 Generate Changelog
+
+# Trigger on successful semantic release or manual trigger
+on:
+  workflow_run:
+    workflows: ["🚀 Semantic Release"]
+    types:
+      - completed
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  changelog:
+    name: 📋 Update Changelog
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: 📝 Generate Changelog
+        uses: TriPSs/conventional-changelog-action@v5
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          output-file: 'CHANGELOG.md'
+          preset: 'conventionalcommits'
+          skip-version-file: false
+          skip-commit: false
+          git-message: 'chore(release): update changelog [skip ci]'
+          git-user-name: 'github-actions[bot]'
+          git-user-email: 'github-actions[bot]@users.noreply.github.com'
