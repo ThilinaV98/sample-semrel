@@ -216,7 +216,7 @@ app.use((err, req, res, next) => {
   } catch (logError) {
     // Fallback if logger fails during testing
   }
-  
+
   if (!res.headersSent) {
     res.status(500).json({
       error: 'Internal server error',

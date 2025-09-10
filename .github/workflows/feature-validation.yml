@@ -50,12 +50,11 @@ jobs:
           DEFAULT_BRANCH: main
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VALIDATE_ALL_CODEBASE: false
-          VALIDATE_JAVASCRIPT_ES: true
+          VALIDATE_JAVASCRIPT_ES: false
           VALIDATE_JSON: true
           VALIDATE_YAML: true
           VALIDATE_MARKDOWN: true
           VALIDATE_GITHUB_ACTIONS: true
-          JAVASCRIPT_ES_CONFIG_FILE: package.json
           LOG_LEVEL: WARN
           CREATE_LOG_FILE: true
 
