@@ -1,11 +1,12 @@
 name: 🚀 Semantic Release
 
-# Trigger when pushing to release branches
+# Trigger when PR to main is closed/merged
 on:
-  push:
+  pull_request:
     branches:
-      - 'release/*'
-      - 'release/**'
+      - main
+    types:
+      - closed
 
 permissions:
   contents: write
@@ -16,12 +17,15 @@ jobs:
   semantic-release:
     name: 📦 Semantic Release
     runs-on: ubuntu-latest
+    # Only run if PR was merged (not just closed)
+    if: github.event.pull_request.merged == true
     
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: 🟢 Setup Node.js
