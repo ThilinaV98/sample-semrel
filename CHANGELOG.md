@@ -1,3 +1,10 @@
+## [1.2.0](https://github.com/ThilinaV98/sample-semrel/compare/v1.1.0...v1.2.0) (2025-09-11)
+
+
+### ✨ Features
+
+* add new versioning test feature ([496e708](https://github.com/ThilinaV98/sample-semrel/commit/496e708fdd0f79d15830815fb63d65141548d1de))
+
 ## 1.1.0 (2025-09-11)
 
 
@@ -23,4 +30,3 @@
 * resolve Super-Linter v5 validation configuration conflict ([ecab1cd](https://github.com/username/sample-semantic-release/commit/ecab1cd28dd98a10b12a0f06e3f1dc523809cf6e))
 * resolve unused parameter eslint warning in error handler ([71e467d](https://github.com/username/sample-semantic-release/commit/71e467d10c48ad5c9167b684b643f10a71d5ef01))
 * resolve workflow validation issues ([ee638f8](https://github.com/username/sample-semantic-release/commit/ee638f88109980f5666f9679b2edcfeea1491436))
-
