@@ -1,4 +1,12 @@
-## 1.1.0 (2025-09-11)
+## [1.1.1](https://github.com/username/sample-semantic-release/compare/v1.1.0...v1.1.1) (2025-09-11)
+
+
+### Bug Fixes
+
+* correct semantic-release configuration and workflow ([3da82bf](https://github.com/username/sample-semantic-release/commit/3da82bf3fd0667c9b04fa32f3d8a7cddccf448a1))
+* test semantic-release with corrected branch configuration ([d973eb5](https://github.com/username/sample-semantic-release/commit/d973eb50103ec571f9cdd68096f76d81a82ee759))
+
+## [1.1.0](https://github.com/username/sample-semantic-release/compare/85ad6701dc303710ff576bdeb960058597c4bcee...v1.1.0) (2025-09-11)
 
 
 ### Features
