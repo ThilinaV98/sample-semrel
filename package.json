@@ -1,6 +1,6 @@
 {
   "name": "sample-semantic-release",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Sample project demonstrating semantic versioning and branching strategy",
   "main": "src/index.js",
   "scripts": {
@@ -106,7 +106,9 @@
       "plugin:jest/recommended",
       "prettier"
     ],
-    "plugins": ["jest"],
+    "plugins": [
+      "jest"
+    ],
     "parserOptions": {
       "ecmaVersion": 2022,
       "sourceType": "module"
