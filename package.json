@@ -106,7 +106,9 @@
       "plugin:jest/recommended",
       "prettier"
     ],
-    "plugins": ["jest"],
+    "plugins": [
+      "jest"
+    ],
     "parserOptions": {
       "ecmaVersion": 2022,
       "sourceType": "module"
