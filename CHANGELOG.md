@@ -1,3 +1,23 @@
+## [1.3.0](https://github.com/ThilinaV98/sample-semrel/compare/v1.2.0...v1.3.0) (2025-09-11)
+
+### Features
+
+* add feature A functionality ([d05175a](https://github.com/ThilinaV98/sample-semrel/commit/d05175a))
+
+### Bug Fixes
+
+* resolve critical bug in authentication ([fb433c7](https://github.com/ThilinaV98/sample-semrel/commit/fb433c7))
+
+### Performance Improvements
+
+* optimize database queries ([12872dc](https://github.com/ThilinaV98/sample-semrel/commit/12872dc))
+
+## [1.2.0](https://github.com/ThilinaV98/sample-semrel/compare/v1.1.1...v1.2.0) (2025-09-11)
+
+### Features
+
+* add new versioning test feature ([1fd766c](https://github.com/ThilinaV98/sample-semrel/commit/1fd766c))
+
 ## [1.1.1](https://github.com/username/sample-semantic-release/compare/v1.1.0...v1.1.1) (2025-09-11)
 
 
