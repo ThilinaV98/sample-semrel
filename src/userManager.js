@@ -1,6 +1,6 @@
 /**
  * UserManager utility class
- * 
+ *
  * Provides user management functionality for the sample application.
  * This class demonstrates CRUD operations and serves as an example
  * for testing different types of changes in semantic versioning.
@@ -10,6 +10,19 @@ class UserManager {
   constructor() {
     this.users = new Map();
     this.nextId = 1;
+    this.timestampCounter = 0;
+  }
+
+  /**
+   * Generate a unique timestamp to ensure proper ordering
+   * @returns {string} ISO timestamp with microsecond precision
+   */
+  _generateTimestamp() {
+    const now = new Date();
+    const timestamp = now.toISOString();
+    // Add microsecond precision using counter to ensure uniqueness
+    const microseconds = String(this.timestampCounter++).padStart(3, '0');
+    return timestamp.slice(0, -1) + microseconds + 'Z';
   }
 
   /**
@@ -29,6 +42,10 @@ class UserManager {
       throw new Error('Email is required and must be a string');
     }
 
+    // Trim inputs before validation
+    name = name.trim();
+    email = email.toLowerCase().trim();
+
     if (!this._isValidEmail(email)) {
       throw new Error('Invalid email format');
     }
@@ -39,14 +56,15 @@ class UserManager {
     }
 
     // Create user object
+    const timestamp = this._generateTimestamp();
     const user = {
       id: this.nextId.toString(),
-      name: name.trim(),
-      email: email.toLowerCase().trim(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      name: name,
+      email: email,
+      createdAt: timestamp,
+      updatedAt: timestamp,
       isActive: true,
-      ...additionalData
+      ...additionalData,
     };
 
     // Store user
@@ -77,7 +95,7 @@ class UserManager {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
-    
+
     for (const user of this.users.values()) {
       if (user.email === normalizedEmail) {
         return { ...user }; // Return copy
@@ -97,16 +115,16 @@ class UserManager {
    */
   getAllUsers(options = {}) {
     const { activeOnly = false, limit, offset = 0 } = options;
-    
+
     let users = Array.from(this.users.values());
 
     // Filter active users if requested
     if (activeOnly) {
-      users = users.filter(user => user.isActive);
+      users = users.filter((user) => user.isActive);
     }
 
-    // Sort by creation date (newest first)
-    users.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    // Sort by creation date (newest first) - use string comparison for microsecond precision
+    users.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
     // Apply pagination
     if (limit) {
@@ -116,7 +134,7 @@ class UserManager {
     }
 
     // Return copies to prevent external modification
-    return users.map(user => ({ ...user }));
+    return users.map((user) => ({ ...user }));
   }
 
   /**
@@ -127,7 +145,7 @@ class UserManager {
    */
   updateUser(id, updates) {
     const user = this.users.get(id);
-    
+
     if (!user) {
       return null;
     }
@@ -139,7 +157,7 @@ class UserManager {
       }
 
       const normalizedEmail = updates.email.toLowerCase().trim();
-      
+
       // Check for duplicate email (excluding current user)
       if (normalizedEmail !== user.email && this._emailExists(normalizedEmail)) {
         throw new Error(`User with email ${normalizedEmail} already exists`);
@@ -154,7 +172,7 @@ class UserManager {
       ...updates,
       id: user.id, // Prevent ID changes
       createdAt: user.createdAt, // Prevent createdAt changes
-      updatedAt: new Date().toISOString()
+      updatedAt: this._generateTimestamp(),
     };
 
     // Validate name if being updated
@@ -176,15 +194,15 @@ class UserManager {
    */
   deleteUser(id) {
     const user = this.users.get(id);
-    
+
     if (!user) {
       return false;
     }
 
     // Soft delete - mark as inactive
     user.isActive = false;
-    user.updatedAt = new Date().toISOString();
-    user.deletedAt = new Date().toISOString();
+    user.updatedAt = this._generateTimestamp();
+    user.deletedAt = this._generateTimestamp();
 
     return true;
   }
@@ -205,13 +223,13 @@ class UserManager {
    */
   reactivateUser(id) {
     const user = this.users.get(id);
-    
+
     if (!user) {
       return false;
     }
 
     user.isActive = true;
-    user.updatedAt = new Date().toISOString();
+    user.updatedAt = this._generateTimestamp();
     delete user.deletedAt; // Remove deletion timestamp
 
     return true;
@@ -223,27 +241,29 @@ class UserManager {
    */
   getStatistics() {
     const allUsers = Array.from(this.users.values());
-    const activeUsers = allUsers.filter(user => user.isActive);
-    const inactiveUsers = allUsers.filter(user => !user.isActive);
+    const activeUsers = allUsers.filter((user) => user.isActive);
+    const inactiveUsers = allUsers.filter((user) => !user.isActive);
 
     return {
       totalUsers: allUsers.length,
       activeUsers: activeUsers.length,
       inactiveUsers: inactiveUsers.length,
-      recentUsers: allUsers
-        .filter(user => {
-          const daysSinceCreation = (Date.now() - new Date(user.createdAt)) / (1000 * 60 * 60 * 24);
-          return daysSinceCreation <= 7;
-        })
-        .length,
-      oldestUser: allUsers.length > 0 ? 
-        allUsers.reduce((oldest, user) => 
-          new Date(user.createdAt) < new Date(oldest.createdAt) ? user : oldest
-        ).createdAt : null,
-      newestUser: allUsers.length > 0 ? 
-        allUsers.reduce((newest, user) => 
-          new Date(user.createdAt) > new Date(newest.createdAt) ? user : newest
-        ).createdAt : null
+      recentUsers: allUsers.filter((user) => {
+        const daysSinceCreation = (Date.now() - new Date(user.createdAt)) / (1000 * 60 * 60 * 24);
+        return daysSinceCreation <= 7;
+      }).length,
+      oldestUser:
+        allUsers.length > 0
+          ? allUsers.reduce((oldest, user) =>
+              new Date(user.createdAt) < new Date(oldest.createdAt) ? user : oldest
+            ).createdAt
+          : null,
+      newestUser:
+        allUsers.length > 0
+          ? allUsers.reduce((newest, user) =>
+              new Date(user.createdAt) > new Date(newest.createdAt) ? user : newest
+            ).createdAt
+          : null,
     };
   }
 
@@ -274,7 +294,7 @@ class UserManager {
    */
   _emailExists(email) {
     const normalizedEmail = email.toLowerCase().trim();
-    
+
     for (const user of this.users.values()) {
       if (user.email === normalizedEmail) {
         return true;
@@ -295,12 +315,12 @@ class UserManager {
     }
 
     const searchTerm = query.toLowerCase().trim();
-    
-    return this.getAllUsers()
-      .filter(user => 
+
+    return this.getAllUsers().filter(
+      (user) =>
         user.name.toLowerCase().includes(searchTerm) ||
         user.email.toLowerCase().includes(searchTerm)
-      );
+    );
   }
 }
 

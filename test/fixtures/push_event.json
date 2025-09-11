@@ -1,0 +1,108 @@
+{
+  "ref": "refs/heads/dev",
+  "before": "0000000000000000000000000000000000000000",
+  "after": "abc123def456789abc123def456789abc123def4",
+  "created": false,
+  "deleted": false,
+  "forced": false,
+  "base_ref": null,
+  "compare": "https://github.com/username/sample-semrel/compare/0000000000...abc123def456",
+  "commits": [
+    {
+      "id": "abc123def456789abc123def456789abc123def4",
+      "tree_id": "tree123",
+      "distinct": true,
+      "message": "feat: add user authentication system\n\nImplement OAuth2 authentication with Google and GitHub providers.\nThis includes token management, session handling, and user profile sync.",
+      "timestamp": "2024-01-01T00:00:00Z",
+      "url": "https://github.com/username/sample-semrel/commit/abc123",
+      "author": {
+        "name": "Developer Name",
+        "email": "developer@example.com",
+        "username": "developer"
+      },
+      "committer": {
+        "name": "Developer Name",
+        "email": "developer@example.com",
+        "username": "developer"
+      },
+      "added": ["src/auth/oauth.js"],
+      "removed": [],
+      "modified": ["src/index.js", "package.json"]
+    },
+    {
+      "id": "def456789abc123def456789abc123def456789a",
+      "tree_id": "tree456",
+      "distinct": true,
+      "message": "fix: resolve memory leak in user manager",
+      "timestamp": "2024-01-01T01:00:00Z",
+      "url": "https://github.com/username/sample-semrel/commit/def456",
+      "author": {
+        "name": "Developer Name",
+        "email": "developer@example.com",
+        "username": "developer"
+      },
+      "committer": {
+        "name": "Developer Name",
+        "email": "developer@example.com",
+        "username": "developer"
+      },
+      "added": [],
+      "removed": [],
+      "modified": ["src/userManager.js"]
+    },
+    {
+      "id": "789abc123def456789abc123def456789abc123d",
+      "tree_id": "tree789",
+      "distinct": true,
+      "message": "docs: update API documentation",
+      "timestamp": "2024-01-01T02:00:00Z",
+      "url": "https://github.com/username/sample-semrel/commit/789abc",
+      "author": {
+        "name": "Developer Name",
+        "email": "developer@example.com",
+        "username": "developer"
+      },
+      "committer": {
+        "name": "Developer Name",
+        "email": "developer@example.com",
+        "username": "developer"
+      },
+      "added": [],
+      "removed": [],
+      "modified": ["README.md"]
+    }
+  ],
+  "head_commit": {
+    "id": "789abc123def456789abc123def456789abc123d",
+    "tree_id": "tree789",
+    "distinct": true,
+    "message": "docs: update API documentation",
+    "timestamp": "2024-01-01T02:00:00Z",
+    "url": "https://github.com/username/sample-semrel/commit/789abc",
+    "author": {
+      "name": "Developer Name",
+      "email": "developer@example.com",
+      "username": "developer"
+    },
+    "committer": {
+      "name": "Developer Name",
+      "email": "developer@example.com",
+      "username": "developer"
+    },
+    "added": [],
+    "removed": [],
+    "modified": ["README.md"]
+  },
+  "repository": {
+    "name": "sample-semrel",
+    "full_name": "username/sample-semrel",
+    "owner": {
+      "name": "username",
+      "email": "user@example.com"
+    }
+  },
+  "pusher": {
+    "name": "developer",
+    "email": "developer@example.com"
+  }
+}

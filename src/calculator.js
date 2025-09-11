@@ -1,6 +1,6 @@
 /**
  * Calculator utility class
- * 
+ *
  * Provides basic mathematical operations for the sample application.
  * This class demonstrates simple functionality that can be easily tested
  * and serves as an example for semantic versioning scenarios.
@@ -120,7 +120,10 @@ class Calculator {
    * @returns {Array} Array of historical calculations
    */
   getHistory() {
-    return [...this.history];
+    return this.history.map((calc) => ({
+      ...calc,
+      inputs: [...calc.inputs],
+    }));
   }
 
   /**
@@ -150,7 +153,7 @@ class Calculator {
       operation,
       inputs: [...inputs],
       result,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     this.history.push(calculation);
@@ -167,19 +170,21 @@ class Calculator {
    */
   getStatistics() {
     const operationCounts = {};
-    let totalCalculations = this.history.length;
+    const totalCalculations = this.history.length;
 
-    this.history.forEach(calc => {
+    this.history.forEach((calc) => {
       operationCounts[calc.operation] = (operationCounts[calc.operation] || 0) + 1;
     });
 
     return {
       totalCalculations,
       operationCounts,
-      mostUsedOperation: Object.keys(operationCounts).reduce((a, b) => 
-        operationCounts[a] > operationCounts[b] ? a : b, null),
+      mostUsedOperation: Object.keys(operationCounts).reduce(
+        (a, b) => (operationCounts[a] > operationCounts[b] ? a : b),
+        null
+      ),
       historySize: this.history.length,
-      maxHistorySize: this.maxHistorySize
+      maxHistorySize: this.maxHistorySize,
     };
   }
 }

@@ -1,0 +1,110 @@
+{
+  "ref": "refs/heads/main",
+  "before": "abc123def456",
+  "after": "xyz789uvw012",
+  "created": false,
+  "deleted": false,
+  "forced": false,
+  "base_ref": null,
+  "compare": "https://github.com/username/sample-semrel/compare/abc123...xyz789",
+  "commits": [
+    {
+      "id": "xyz789uvw012",
+      "tree_id": "maintree123",
+      "distinct": true,
+      "message": "fix: resolve authentication bug\n\nFixes issue where users couldn't log in with special characters in password.",
+      "timestamp": "2024-01-01T14:00:00Z",
+      "url": "https://github.com/username/sample-semrel/commit/xyz789uvw012",
+      "author": {
+        "name": "Developer",
+        "email": "developer@example.com",
+        "username": "developer"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com",
+        "username": "web-flow"
+      },
+      "added": [],
+      "removed": [],
+      "modified": [
+        "src/auth.js",
+        "test/auth.test.js"
+      ]
+    }
+  ],
+  "head_commit": {
+    "id": "xyz789uvw012",
+    "tree_id": "maintree123",
+    "distinct": true,
+    "message": "fix: resolve authentication bug\n\nFixes issue where users couldn't log in with special characters in password.",
+    "timestamp": "2024-01-01T14:00:00Z",
+    "url": "https://github.com/username/sample-semrel/commit/xyz789uvw012",
+    "author": {
+      "name": "Developer",
+      "email": "developer@example.com",
+      "username": "developer"
+    },
+    "committer": {
+      "name": "GitHub",
+      "email": "noreply@github.com",
+      "username": "web-flow"
+    },
+    "added": [],
+    "removed": [],
+    "modified": [
+      "src/auth.js",
+      "test/auth.test.js"
+    ]
+  },
+  "repository": {
+    "id": 123456789,
+    "name": "sample-semrel",
+    "full_name": "username/sample-semrel",
+    "private": false,
+    "owner": {
+      "name": "username",
+      "email": "user@example.com",
+      "login": "username",
+      "type": "User"
+    },
+    "html_url": "https://github.com/username/sample-semrel",
+    "description": "Sample project demonstrating semantic versioning and branching strategy",
+    "fork": false,
+    "url": "https://github.com/username/sample-semrel",
+    "created_at": "2024-01-01T00:00:00Z",
+    "updated_at": "2024-01-01T14:00:00Z",
+    "pushed_at": "2024-01-01T14:00:00Z",
+    "git_url": "git://github.com/username/sample-semrel.git",
+    "ssh_url": "git@github.com:username/sample-semrel.git",
+    "clone_url": "https://github.com/username/sample-semrel.git",
+    "size": 1024,
+    "stargazers_count": 5,
+    "watchers_count": 5,
+    "language": "JavaScript",
+    "has_issues": true,
+    "has_projects": true,
+    "has_wiki": true,
+    "has_pages": false,
+    "forks_count": 0,
+    "archived": false,
+    "disabled": false,
+    "open_issues_count": 1,
+    "license": {
+      "key": "mit",
+      "name": "MIT License"
+    },
+    "forks": 0,
+    "open_issues": 1,
+    "watchers": 5,
+    "default_branch": "main"
+  },
+  "pusher": {
+    "name": "username",
+    "email": "user@example.com"
+  },
+  "sender": {
+    "login": "username",
+    "type": "User"
+  }
+}

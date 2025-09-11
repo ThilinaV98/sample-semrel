@@ -1,0 +1,113 @@
+{
+  "action": "opened",
+  "number": 789,
+  "repository": {
+    "name": "sample-semrel",
+    "full_name": "username/sample-semrel",
+    "owner": {
+      "login": "username",
+      "type": "User"
+    },
+    "default_branch": "main",
+    "clone_url": "https://github.com/username/sample-semrel.git"
+  },
+  "pull_request": {
+    "id": 1357924680,
+    "number": 789,
+    "state": "open",
+    "locked": false,
+    "title": "🚨 HOTFIX: Critical security vulnerability patch",
+    "body": "## 🚨 EMERGENCY HOTFIX\n\n**Severity:** 🔴 CRITICAL\n**CVE:** CVE-2024-0001\n**Impact:** SQL Injection vulnerability in authentication\n\n### 🔧 Changes\n\n- **Fixed:** SQL injection vulnerability in user authentication\n- **Added:** Input validation and parameterized queries\n- **Updated:** Security documentation\n- **Tests:** Added security-focused test cases\n\n### ⚠️ Breaking Changes\n\n- Authentication API response format updated\n- Legacy authentication endpoints deprecated\n\n### 🧪 Testing\n\n- [x] Security tests pass\n- [x] Integration tests pass  \n- [x] No performance regression\n- [x] Backward compatibility verified\n\n### 📋 Deployment Notes\n\n1. This hotfix MUST be deployed immediately\n2. All authentication sessions will be invalidated\n3. Users will need to re-authenticate\n4. Monitor authentication logs for 24h post-deployment\n\n### 🔄 Post-Deployment\n\n- [ ] Verify vulnerability is patched\n- [ ] Monitor error rates and performance\n- [ ] Update security documentation\n- [ ] Notify security team of completion\n\n---\n\n**⏰ Created:** 2024-01-01 16:15:00 UTC\n**👤 Requester:** Security Team\n**🎯 Target:** Immediate production deployment",
+    "user": {
+      "login": "security-team",
+      "type": "User"
+    },
+    "created_at": "2024-01-01T16:15:00Z",
+    "updated_at": "2024-01-01T16:15:00Z",
+    "head": {
+      "label": "username:hotfix/critical-security-fix",
+      "ref": "hotfix/critical-security-fix",
+      "sha": "hotfix123abc456",
+      "user": {
+        "login": "username"
+      },
+      "repo": {
+        "name": "sample-semrel",
+        "full_name": "username/sample-semrel"
+      }
+    },
+    "base": {
+      "label": "username:main",
+      "ref": "main", 
+      "sha": "main789xyz012",
+      "user": {
+        "login": "username"
+      },
+      "repo": {
+        "name": "sample-semrel",
+        "full_name": "username/sample-semrel"
+      }
+    },
+    "draft": false,
+    "commits": 1,
+    "additions": 89,
+    "deletions": 12,
+    "changed_files": 5,
+    "labels": [
+      {
+        "id": 208045948,
+        "name": "hotfix",
+        "color": "d93f0b",
+        "default": false,
+        "description": "Emergency production fix"
+      },
+      {
+        "id": 208045949, 
+        "name": "security",
+        "color": "b60205",
+        "default": false,
+        "description": "Security-related changes"
+      },
+      {
+        "id": 208045950,
+        "name": "critical",
+        "color": "b60205", 
+        "default": false,
+        "description": "Critical priority"
+      }
+    ],
+    "assignees": [
+      {
+        "login": "security-team",
+        "type": "User"
+      },
+      {
+        "login": "lead-developer",
+        "type": "User"
+      }
+    ],
+    "requested_reviewers": [
+      {
+        "login": "tech-lead",
+        "type": "User"
+      },
+      {
+        "login": "security-architect", 
+        "type": "User"
+      }
+    ],
+    "milestone": {
+      "id": 1234568,
+      "number": 2,
+      "title": "Emergency Fixes",
+      "description": "Critical hotfixes and security patches",
+      "state": "open",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T16:15:00Z"
+    }
+  },
+  "sender": {
+    "login": "security-team",
+    "type": "User"
+  }
+}

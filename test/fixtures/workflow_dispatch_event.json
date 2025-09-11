@@ -1,0 +1,121 @@
+{
+  "inputs": {
+    "source_branch": "dev",
+    "release_type": "minor",
+    "pre_release_identifier": "rc"
+  },
+  "ref": "refs/heads/main",
+  "workflow": ".github/workflows/release-preparation.yml",
+  "repository": {
+    "id": 123456789,
+    "name": "sample-semrel",
+    "full_name": "username/sample-semrel",
+    "private": false,
+    "owner": {
+      "name": "username",
+      "email": "user@example.com",
+      "login": "username",
+      "type": "User"
+    },
+    "html_url": "https://github.com/username/sample-semrel",
+    "description": "Sample project demonstrating semantic versioning and branching strategy",
+    "fork": false,
+    "url": "https://github.com/username/sample-semrel",
+    "created_at": "2024-01-01T00:00:00Z",
+    "updated_at": "2024-01-01T15:00:00Z",
+    "pushed_at": "2024-01-01T15:00:00Z",
+    "git_url": "git://github.com/username/sample-semrel.git",
+    "ssh_url": "git@github.com:username/sample-semrel.git",
+    "clone_url": "https://github.com/username/sample-semrel.git",
+    "size": 1024,
+    "stargazers_count": 5,
+    "watchers_count": 5,
+    "language": "JavaScript",
+    "has_issues": true,
+    "has_projects": true,
+    "has_wiki": true,
+    "has_pages": false,
+    "forks_count": 0,
+    "archived": false,
+    "disabled": false,
+    "open_issues_count": 1,
+    "license": {
+      "key": "mit",
+      "name": "MIT License"
+    },
+    "forks": 0,
+    "open_issues": 1,
+    "watchers": 5,
+    "default_branch": "main"
+  },
+  "sender": {
+    "login": "release-manager",
+    "type": "User",
+    "name": "Release Manager",
+    "email": "releases@example.com"
+  },
+  "workflow_run": {
+    "id": 987654321,
+    "name": "Release Preparation",
+    "node_id": "WFR_node123",
+    "head_branch": "main",
+    "head_sha": "abc123def456",
+    "path": ".github/workflows/release-preparation.yml",
+    "display_title": "Create release branch for minor release",
+    "run_number": 42,
+    "event": "workflow_dispatch",
+    "status": "queued",
+    "conclusion": null,
+    "workflow_id": 123456,
+    "check_suite_id": 456789,
+    "check_suite_node_id": "CS_node789",
+    "url": "https://api.github.com/repos/username/sample-semrel/actions/runs/987654321",
+    "html_url": "https://github.com/username/sample-semrel/actions/runs/987654321",
+    "pull_requests": [],
+    "created_at": "2024-01-01T15:00:00Z",
+    "updated_at": "2024-01-01T15:00:00Z",
+    "actor": {
+      "login": "release-manager",
+      "type": "User"
+    },
+    "run_attempt": 1,
+    "referenced_workflows": [],
+    "run_started_at": "2024-01-01T15:00:00Z",
+    "triggering_actor": {
+      "login": "release-manager",
+      "type": "User"
+    },
+    "jobs_url": "https://api.github.com/repos/username/sample-semrel/actions/runs/987654321/jobs",
+    "logs_url": "https://api.github.com/repos/username/sample-semrel/actions/runs/987654321/logs",
+    "check_suite_url": "https://api.github.com/repos/username/sample-semrel/check-suites/456789",
+    "artifacts_url": "https://api.github.com/repos/username/sample-semrel/actions/runs/987654321/artifacts",
+    "cancel_url": "https://api.github.com/repos/username/sample-semrel/actions/runs/987654321/cancel",
+    "rerun_url": "https://api.github.com/repos/username/sample-semrel/actions/runs/987654321/rerun",
+    "previous_attempt_url": null,
+    "workflow_url": "https://api.github.com/repos/username/sample-semrel/actions/workflows/123456",
+    "head_commit": {
+      "id": "abc123def456",
+      "tree_id": "tree456",
+      "message": "feat: prepare for next release cycle",
+      "timestamp": "2024-01-01T14:30:00Z",
+      "author": {
+        "name": "Developer",
+        "email": "developer@example.com"
+      },
+      "committer": {
+        "name": "Developer", 
+        "email": "developer@example.com"
+      }
+    },
+    "repository": {
+      "id": 123456789,
+      "name": "sample-semrel",
+      "full_name": "username/sample-semrel"
+    },
+    "head_repository": {
+      "id": 123456789,
+      "name": "sample-semrel",
+      "full_name": "username/sample-semrel"
+    }
+  }
+}

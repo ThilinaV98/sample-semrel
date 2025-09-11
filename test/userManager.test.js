@@ -1,6 +1,6 @@
 /**
  * UserManager utility tests
- * 
+ *
  * Unit tests for the UserManager class
  */
 
@@ -16,7 +16,7 @@ describe('UserManager', () => {
   describe('User Creation', () => {
     it('should create a new user with valid data', () => {
       const user = userManager.createUser('John Doe', 'john@example.com');
-      
+
       expect(user).toHaveProperty('id');
       expect(user).toHaveProperty('name', 'John Doe');
       expect(user).toHaveProperty('email', 'john@example.com');
@@ -29,7 +29,7 @@ describe('UserManager', () => {
     it('should create user with additional data', () => {
       const additionalData = { role: 'admin', department: 'IT' };
       const user = userManager.createUser('Jane Doe', 'jane@example.com', additionalData);
-      
+
       expect(user).toHaveProperty('role', 'admin');
       expect(user).toHaveProperty('department', 'IT');
     });
@@ -48,49 +48,54 @@ describe('UserManager', () => {
     it('should assign incremental IDs', () => {
       const user1 = userManager.createUser('User 1', 'user1@example.com');
       const user2 = userManager.createUser('User 2', 'user2@example.com');
-      
+
       expect(parseInt(user1.id)).toBeLessThan(parseInt(user2.id));
     });
 
     it('should throw error for missing name', () => {
-      expect(() => userManager.createUser('', 'john@example.com'))
-        .toThrow('Name is required and must be a string');
-      
-      expect(() => userManager.createUser(null, 'john@example.com'))
-        .toThrow('Name is required and must be a string');
+      expect(() => userManager.createUser('', 'john@example.com')).toThrow(
+        'Name is required and must be a string'
+      );
+
+      expect(() => userManager.createUser(null, 'john@example.com')).toThrow(
+        'Name is required and must be a string'
+      );
     });
 
     it('should throw error for missing email', () => {
-      expect(() => userManager.createUser('John Doe', ''))
-        .toThrow('Email is required and must be a string');
-      
-      expect(() => userManager.createUser('John Doe', null))
-        .toThrow('Email is required and must be a string');
+      expect(() => userManager.createUser('John Doe', '')).toThrow(
+        'Email is required and must be a string'
+      );
+
+      expect(() => userManager.createUser('John Doe', null)).toThrow(
+        'Email is required and must be a string'
+      );
     });
 
     it('should throw error for invalid email format', () => {
-      expect(() => userManager.createUser('John Doe', 'invalid-email'))
-        .toThrow('Invalid email format');
-      
-      expect(() => userManager.createUser('John Doe', 'john@'))
-        .toThrow('Invalid email format');
-      
-      expect(() => userManager.createUser('John Doe', '@example.com'))
-        .toThrow('Invalid email format');
+      expect(() => userManager.createUser('John Doe', 'invalid-email')).toThrow(
+        'Invalid email format'
+      );
+
+      expect(() => userManager.createUser('John Doe', 'john@')).toThrow('Invalid email format');
+
+      expect(() => userManager.createUser('John Doe', '@example.com')).toThrow(
+        'Invalid email format'
+      );
     });
 
     it('should throw error for duplicate email', () => {
       userManager.createUser('User 1', 'duplicate@example.com');
-      
-      expect(() => userManager.createUser('User 2', 'duplicate@example.com'))
-        .toThrow('User with email duplicate@example.com already exists');
+
+      expect(() => userManager.createUser('User 2', 'duplicate@example.com')).toThrow(
+        'User with email duplicate@example.com already exists'
+      );
     });
 
     it('should detect duplicate email case-insensitively', () => {
       userManager.createUser('User 1', 'case@example.com');
-      
-      expect(() => userManager.createUser('User 2', 'CASE@example.com'))
-        .toThrow('already exists');
+
+      expect(() => userManager.createUser('User 2', 'CASE@example.com')).toThrow('already exists');
     });
   });
 
@@ -116,9 +121,9 @@ describe('UserManager', () => {
       it('should return copy to prevent external modification', () => {
         const user1 = userManager.getUserById('1');
         const user2 = userManager.getUserById('1');
-        
+
         expect(user1).not.toBe(user2);
-        
+
         user1.name = 'Modified';
         expect(user2.name).toBe('John Doe');
       });
@@ -160,17 +165,17 @@ describe('UserManager', () => {
       it('should return copies to prevent external modification', () => {
         const users = userManager.getAllUsers();
         users[0].name = 'Modified';
-        
+
         const users2 = userManager.getAllUsers();
         expect(users2[0].name).not.toBe('Modified');
       });
 
       it('should filter active users only', () => {
         userManager.deleteUser('1'); // Soft delete
-        
+
         const allUsers = userManager.getAllUsers();
         const activeUsers = userManager.getAllUsers({ activeOnly: true });
-        
+
         expect(allUsers).toHaveLength(2);
         expect(activeUsers).toHaveLength(1);
         expect(activeUsers[0].name).toBe('Jane Smith');
@@ -178,14 +183,14 @@ describe('UserManager', () => {
 
       it('should support pagination with limit', () => {
         userManager.createUser('User 3', 'user3@example.com');
-        
+
         const users = userManager.getAllUsers({ limit: 2 });
         expect(users).toHaveLength(2);
       });
 
       it('should support pagination with offset', () => {
         userManager.createUser('User 3', 'user3@example.com');
-        
+
         const users = userManager.getAllUsers({ offset: 1, limit: 2 });
         expect(users).toHaveLength(2);
         expect(users[0].name).toBe('Jane Smith');
@@ -203,7 +208,7 @@ describe('UserManager', () => {
 
     it('should update user name', () => {
       const updatedUser = userManager.updateUser(userId, { name: 'John Smith' });
-      
+
       expect(updatedUser).not.toBeNull();
       expect(updatedUser.name).toBe('John Smith');
       expect(updatedUser.email).toBe('john@example.com');
@@ -212,19 +217,19 @@ describe('UserManager', () => {
 
     it('should update user email', () => {
       const updatedUser = userManager.updateUser(userId, { email: 'johnsmith@example.com' });
-      
+
       expect(updatedUser.email).toBe('johnsmith@example.com');
     });
 
     it('should update multiple fields', () => {
-      const updates = { 
-        name: 'John Smith', 
+      const updates = {
+        name: 'John Smith',
         email: 'johnsmith@example.com',
-        department: 'Engineering'
+        department: 'Engineering',
       };
-      
+
       const updatedUser = userManager.updateUser(userId, updates);
-      
+
       expect(updatedUser.name).toBe('John Smith');
       expect(updatedUser.email).toBe('johnsmith@example.com');
       expect(updatedUser.department).toBe('Engineering');
@@ -242,40 +247,44 @@ describe('UserManager', () => {
 
     it('should prevent createdAt changes', () => {
       const originalUser = userManager.getUserById(userId);
-      const updatedUser = userManager.updateUser(userId, { 
+      const updatedUser = userManager.updateUser(userId, {
         createdAt: '2020-01-01T00:00:00.000Z',
-        name: 'Test'
+        name: 'Test',
       });
-      
+
       expect(updatedUser.createdAt).toBe(originalUser.createdAt);
     });
 
     it('should throw error for invalid name update', () => {
-      expect(() => userManager.updateUser(userId, { name: '' }))
-        .toThrow('Name must be a non-empty string');
-      
-      expect(() => userManager.updateUser(userId, { name: null }))
-        .toThrow('Name must be a non-empty string');
+      expect(() => userManager.updateUser(userId, { name: '' })).toThrow(
+        'Name must be a non-empty string'
+      );
+
+      expect(() => userManager.updateUser(userId, { name: null })).toThrow(
+        'Name must be a non-empty string'
+      );
     });
 
     it('should throw error for invalid email format', () => {
-      expect(() => userManager.updateUser(userId, { email: 'invalid' }))
-        .toThrow('Invalid email format');
+      expect(() => userManager.updateUser(userId, { email: 'invalid' })).toThrow(
+        'Invalid email format'
+      );
     });
 
     it('should throw error for duplicate email', () => {
       userManager.createUser('Jane Doe', 'jane@example.com');
-      
-      expect(() => userManager.updateUser(userId, { email: 'jane@example.com' }))
-        .toThrow('already exists');
+
+      expect(() => userManager.updateUser(userId, { email: 'jane@example.com' })).toThrow(
+        'already exists'
+      );
     });
 
     it('should allow updating to same email', () => {
-      const updatedUser = userManager.updateUser(userId, { 
+      const updatedUser = userManager.updateUser(userId, {
         email: 'john@example.com',
-        name: 'John Updated'
+        name: 'John Updated',
       });
-      
+
       expect(updatedUser.email).toBe('john@example.com');
       expect(updatedUser.name).toBe('John Updated');
     });
@@ -292,7 +301,7 @@ describe('UserManager', () => {
     it('should soft delete user', () => {
       const result = userManager.deleteUser(userId);
       expect(result).toBe(true);
-      
+
       const user = userManager.getUserById(userId);
       expect(user.isActive).toBe(false);
       expect(user).toHaveProperty('deletedAt');
@@ -306,7 +315,7 @@ describe('UserManager', () => {
     it('should permanently delete user', () => {
       const result = userManager.permanentlyDeleteUser(userId);
       expect(result).toBe(true);
-      
+
       const user = userManager.getUserById(userId);
       expect(user).toBeNull();
     });
@@ -315,7 +324,7 @@ describe('UserManager', () => {
       userManager.deleteUser(userId);
       const result = userManager.reactivateUser(userId);
       expect(result).toBe(true);
-      
+
       const user = userManager.getUserById(userId);
       expect(user.isActive).toBe(true);
       expect(user).not.toHaveProperty('deletedAt');
@@ -332,8 +341,8 @@ describe('UserManager', () => {
     it('should search by name', () => {
       const results = userManager.searchUsers('john');
       expect(results).toHaveLength(2); // John Doe and Bob Johnson
-      
-      const names = results.map(user => user.name);
+
+      const names = results.map((user) => user.name);
       expect(names).toContain('John Doe');
       expect(names).toContain('Bob Johnson');
     });
@@ -368,7 +377,7 @@ describe('UserManager', () => {
 
     it('should return accurate statistics', () => {
       const stats = userManager.getStatistics();
-      
+
       expect(stats.totalUsers).toBe(2);
       expect(stats.activeUsers).toBe(1);
       expect(stats.inactiveUsers).toBe(1);
@@ -388,7 +397,7 @@ describe('UserManager', () => {
     it('should handle empty user list', () => {
       userManager.clearAllUsers();
       const stats = userManager.getStatistics();
-      
+
       expect(stats.totalUsers).toBe(0);
       expect(stats.activeUsers).toBe(0);
       expect(stats.inactiveUsers).toBe(0);
@@ -401,13 +410,13 @@ describe('UserManager', () => {
     it('should clear all users', () => {
       userManager.createUser('User 1', 'user1@example.com');
       userManager.createUser('User 2', 'user2@example.com');
-      
+
       expect(userManager.getAllUsers()).toHaveLength(2);
-      
+
       userManager.clearAllUsers();
-      
+
       expect(userManager.getAllUsers()).toHaveLength(0);
-      
+
       // Should reset ID counter
       const newUser = userManager.createUser('New User', 'new@example.com');
       expect(newUser.id).toBe('1');

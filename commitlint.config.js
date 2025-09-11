@@ -16,7 +16,8 @@ module.exports = {
         'chore',    // Build process or auxiliary tool changes
         'ci',       // CI/CD changes
         'build',    // Build system changes
-        'revert'    // Revert previous commit
+        'revert',   // Revert previous commit
+        'hotfix'    // Emergency production fixes
       ]
     ],
     
@@ -97,6 +98,10 @@ module.exports = {
           revert: {
             description: 'Reverts a previous commit',
             title: 'Reverts'
+          },
+          hotfix: {
+            description: 'Emergency fix for production issues',
+            title: 'Hotfixes'
           }
         }
       },
