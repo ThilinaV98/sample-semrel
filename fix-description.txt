@@ -1,0 +1,6 @@
+fix: resolve semantic-release ERELEASEBRANCHES configuration error
+
+This fix addresses the semantic-release failure by:
+- Removing release/* from branches configuration 
+- Changing workflow to trigger on PR merge to main
+- Ensuring semantic-release runs from main branch only
