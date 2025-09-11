@@ -1,6 +1,6 @@
 # Manual Workflow Testing Guide - Single Workflow Version
 
-> **Version**: 4.0.0  
+> **Version**: 4.1.0  
 > **Last Updated**: 2025-01-11  
 > **Purpose**: Step-by-step manual testing of the single-workflow semantic versioning setup
 
@@ -60,6 +60,11 @@ git branch -a
 # 4. Verify workflows exist
 ls -la .github/workflows/
 # Should show: semantic-release.yml (only 1 workflow)
+
+# 5. Optional: Clean up previous test files to avoid conflicts
+ls -la src/ | grep -E "(feature-|bugfix-|perf-|profiles-|search-)"
+# If you see test files from previous runs, you can remove them:
+# rm src/feature-*.js src/bugfix-*.js src/perf-*.js src/profiles-*.js src/search-*.js
 ```
 
 ### Required Dependencies
@@ -116,13 +121,14 @@ git pull origin main
 TIMESTAMP=$(date +%Y%m%d%H%M)
 git checkout -b feature/test-versioning-$TIMESTAMP
 
-# Make changes
-echo "// New feature code" >> src/new-feature.js
+# Make changes with unique content
+echo "// New feature code - Created on $(date)" > src/new-feature-$TIMESTAMP.js
 git add .
 git commit -m "feat: add new versioning test feature
 
 - This is a new feature that should trigger minor version bump
-- Testing semantic release workflow"
+- Testing semantic release workflow
+- Created at $(date)"
 
 # Push feature branch
 git push -u origin feature/test-versioning-$TIMESTAMP
@@ -175,18 +181,18 @@ TIMESTAMP=$(date +%Y%m%d%H%M)
 git checkout main
 git checkout -b feature/multi-commit-$TIMESTAMP
 
-# Add feature
-echo "// Feature A" > src/feature-a.js
+# Add feature with unique content
+echo "// Feature A - Added on $(date)" > src/feature-a-$TIMESTAMP.js
 git add .
 git commit -m "feat: add feature A functionality"
 
-# Add fix
-echo "// Bug fix" > src/bugfix.js
+# Add fix with unique content
+echo "// Bug fix - Applied on $(date)" > src/bugfix-$TIMESTAMP.js
 git add .
 git commit -m "fix: resolve critical bug in authentication"
 
-# Add performance improvement
-echo "// Performance optimization" > src/perf.js
+# Add performance improvement with unique content
+echo "// Performance optimization - Applied on $(date)" > src/perf-$TIMESTAMP.js
 git add .
 git commit -m "perf: optimize database queries"
 
@@ -241,13 +247,14 @@ TIMESTAMP=$(date +%Y%m%d%H%M)
 git checkout main
 git checkout -b feature/user-profiles-$TIMESTAMP
 
-echo "// User profiles" > src/profiles.js
+echo "// User profiles - Created on $(date)" > src/profiles-$TIMESTAMP.js
 git add .
 git commit -m "feat: add user profile management
 
 - CRUD operations for user profiles
-- Profile picture upload
-- Privacy settings"
+- Profile picture upload  
+- Privacy settings
+- Created at $(date)"
 
 git push -u origin feature/user-profiles-$TIMESTAMP
 
@@ -264,13 +271,14 @@ TIMESTAMP=$(date +%Y%m%d%H%M)
 git checkout main && git pull origin main
 git checkout -b feature/search-$TIMESTAMP
 
-echo "// Search engine" > src/search.js
+echo "// Search engine - Created on $(date)" > src/search-$TIMESTAMP.js
 git add .
 git commit -m "feat: implement search functionality
 
 - Full-text search
 - Search filters
-- Search history"
+- Search history
+- Created at $(date)"
 
 git push -u origin feature/search-$TIMESTAMP
 
@@ -446,7 +454,35 @@ git push
 grep -A3 "permissions:" .github/workflows/semantic-release.yml
 ```
 
-### Issue 5: ERELEASEBRANCHES Error ✅ **FIXED**
+### Issue 5: "No commits between branches" Error ✅ **ADDED**
+
+**Problem**: `pull request create failed: GraphQL: No commits between main and branch`
+
+**Root Cause**: Files already exist with same content, so no changes to commit
+
+**Solution**:
+```bash
+# Check if files were actually created but not committed
+git status
+
+# If files exist but no changes:
+ls -la src/
+
+# The issue: files already exist from previous tests
+# Solution: Use unique filenames with timestamp (already in guide)
+TIMESTAMP=$(date +%Y%m%d%H%M)
+echo "// Unique content - $(date)" > src/unique-file-$TIMESTAMP.js
+git add .
+git status  # Should show changes now
+
+# If still no changes, check if you're in the right branch
+git branch --show-current
+
+# Verify branch was created properly
+git log --oneline -3
+```
+
+### Issue 6: ERELEASEBRANCHES Error ✅ **FIXED**
 
 **Problem**: "The release branches are invalid in the branches configuration"
 
