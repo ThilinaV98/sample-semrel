@@ -1,6 +1,6 @@
 # Manual Workflow Testing Guide - Advanced Branching Strategy
 
-> **Version**: 5.0.0  
+> **Version**: 5.1.0  
 > **Last Updated**: 2025-01-12  
 > **Purpose**: Comprehensive testing guide for the new branching strategy with QA release process
 
@@ -138,9 +138,12 @@ git checkout -b release/$RELEASE_DATE-test
 git push -u origin release/$RELEASE_DATE-test
 
 # 3. Merge feature to release (triggers release-preparation.yml)
-gh pr create --base release/$RELEASE_DATE-test --head feature/test-$TIMESTAMP \
-  --title "feat: test feature" --body "Test implementation"
-gh pr merge --merge --delete-branch
+# Create and merge test feature PR
+PR_OUTPUT=$(gh pr create --base release/$RELEASE_DATE-test --head feature/test-$TIMESTAMP \
+  --title "feat: test feature" --body "Test implementation")
+PR_NUM=$(echo $PR_OUTPUT | grep -oE '[0-9]+$')
+echo "Created PR #$PR_NUM"
+gh pr merge $PR_NUM --merge --delete-branch
 
 # 4. Wait for pre-release version
 sleep 30
@@ -148,9 +151,12 @@ git checkout release/$RELEASE_DATE-test && git pull
 grep version package.json  # Should show X.Y.Z-rc.DDMMYY
 
 # 5. Merge to main (triggers semantic-release.yml)
-gh pr create --base main --head release/$RELEASE_DATE-test \
-  --title "Release $RELEASE_DATE" --body "Production release"
-gh pr merge --merge --delete-branch
+# Create and merge production release PR
+PR_OUTPUT=$(gh pr create --base main --head release/$RELEASE_DATE-test \
+  --title "Release $RELEASE_DATE" --body "Production release")
+PR_NUM=$(echo $PR_OUTPUT | grep -oE '[0-9]+$')
+echo "Created PR #$PR_NUM"
+gh pr merge $PR_NUM --merge --delete-branch
 
 # 6. Verify production release
 sleep 30
@@ -221,7 +227,8 @@ git push -u origin release/$RELEASE_DATE-$RELEASE_DESC
 
 ```bash
 # Create PR from feature to release
-gh pr create \
+# Create and merge PR from feature to release (triggers release-preparation.yml)
+PR_OUTPUT=$(gh pr create \
   --base release/$RELEASE_DATE-$RELEASE_DESC \
   --head feature/payment-gateway-$TIMESTAMP \
   --title "feat: payment gateway integration" \
@@ -231,10 +238,10 @@ Payment gateway implementation for processing transactions
 ## Testing
 - [ ] Unit tests pass
 - [ ] Integration tests pass
-- [ ] Manual QA completed"
-
-# Merge PR (triggers release-preparation.yml)
-gh pr merge --merge --delete-branch
+- [ ] Manual QA completed")
+PR_NUM=$(echo $PR_OUTPUT | grep -oE '[0-9]+$')
+echo "Created PR #$PR_NUM"
+gh pr merge $PR_NUM --merge --delete-branch
 ```
 
 ### Step 1.4: Verify Pre-release Creation
@@ -269,7 +276,8 @@ git push
 
 ```bash
 # After QA approval, create PR to main
-gh pr create \
+# Create and merge PR to main (triggers semantic-release.yml)
+PR_OUTPUT=$(gh pr create \
   --base main \
   --head release/$RELEASE_DATE-$RELEASE_DESC \
   --title "Release v$RELEASE_DATE - Payment Gateway" \
@@ -282,10 +290,10 @@ gh pr create \
 - Payment gateway integration
 
 ## Fixes
-- Payment validation added"
-
-# Merge to trigger semantic-release.yml
-gh pr merge --merge --delete-branch
+- Payment validation added")
+PR_NUM=$(echo $PR_OUTPUT | grep -oE '[0-9]+$')
+echo "Created PR #$PR_NUM"
+gh pr merge $PR_NUM --merge --delete-branch
 ```
 
 ### Step 1.7: Verify Production Release
@@ -340,14 +348,14 @@ git push -u origin feature/user-analytics-$TIMESTAMP
 ### Step 2.2: Merge to Dev Branch
 
 ```bash
-# PR to dev for testing
-gh pr create \
+# Create and merge PR to dev for testing
+PR_OUTPUT=$(gh pr create \
   --base dev \
   --title "feat: user analytics" \
-  --body "Adding analytics for integration testing"
-
-# Merge to dev
-gh pr merge --merge --delete-branch
+  --body "Adding analytics for integration testing")
+PR_NUM=$(echo $PR_OUTPUT | grep -oE '[0-9]+$')
+echo "Created PR #$PR_NUM"
+gh pr merge $PR_NUM --merge --delete-branch
 
 # Verify in dev
 git checkout dev && git pull origin dev
@@ -405,7 +413,8 @@ git push -u origin hotfix/critical-security-patch
 
 ```bash
 # Direct PR to main (bypasses release process)
-gh pr create \
+# Create and merge hotfix PR immediately
+PR_OUTPUT=$(gh pr create \
   --base main \
   --title "🚨 HOTFIX: Critical security patch" \
   --body "## Critical Security Fix
@@ -417,10 +426,10 @@ gh pr create \
 
 ## Changes
 - Input validation added
-- SQL injection prevention"
-
-# Merge immediately
-gh pr merge --merge --delete-branch
+- SQL injection prevention")
+PR_NUM=$(echo $PR_OUTPUT | grep -oE '[0-9]+$')
+echo "Created PR #$PR_NUM"
+gh pr merge $PR_NUM --merge --delete-branch
 ```
 
 ### Step 3.3: Verify Hotfix Release
@@ -485,18 +494,24 @@ git checkout main
 git checkout -b release/$RELEASE_DATE-$RELEASE_DESC
 git push -u origin release/$RELEASE_DATE-$RELEASE_DESC
 
-# Merge all features to release
-gh pr create --base release/$RELEASE_DATE-$RELEASE_DESC --head feature/dashboard-$TIMESTAMP1 \
-  --title "feat: dashboard" --body "Admin dashboard"
-gh pr merge --merge --delete-branch
+# Create and merge all features to release branch
+PR_OUTPUT1=$(gh pr create --base release/$RELEASE_DATE-$RELEASE_DESC --head feature/dashboard-$TIMESTAMP1 \
+  --title "feat: dashboard" --body "Admin dashboard")
+PR_NUM1=$(echo $PR_OUTPUT1 | grep -oE '[0-9]+$')
+echo "Created PR #$PR_NUM1"
+gh pr merge $PR_NUM1 --merge --delete-branch
 
-gh pr create --base release/$RELEASE_DATE-$RELEASE_DESC --head feature/notifications-$TIMESTAMP2 \
-  --title "feat: notifications" --body "Push notifications"
-gh pr merge --merge --delete-branch
+PR_OUTPUT2=$(gh pr create --base release/$RELEASE_DATE-$RELEASE_DESC --head feature/notifications-$TIMESTAMP2 \
+  --title "feat: notifications" --body "Push notifications")
+PR_NUM2=$(echo $PR_OUTPUT2 | grep -oE '[0-9]+$')
+echo "Created PR #$PR_NUM2"
+gh pr merge $PR_NUM2 --merge --delete-branch
 
-gh pr create --base release/$RELEASE_DATE-$RELEASE_DESC --head feature/reports-$TIMESTAMP3 \
-  --title "feat: reports" --body "Reporting module"
-gh pr merge --merge --delete-branch
+PR_OUTPUT3=$(gh pr create --base release/$RELEASE_DATE-$RELEASE_DESC --head feature/reports-$TIMESTAMP3 \
+  --title "feat: reports" --body "Reporting module")
+PR_NUM3=$(echo $PR_OUTPUT3 | grep -oE '[0-9]+$')
+echo "Created PR #$PR_NUM3"
+gh pr merge $PR_NUM3 --merge --delete-branch
 ```
 
 ### Step 4.3: Verify Combined Pre-release
@@ -514,7 +529,8 @@ cat RELEASE_NOTES.md | grep -A20 "Release Highlights"
 
 ```bash
 # Merge to main
-gh pr create \
+# Create and merge release PR to main
+PR_OUTPUT=$(gh pr create \
   --base main \
   --head release/$RELEASE_DATE-$RELEASE_DESC \
   --title "Release v$RELEASE_DATE - Multi-feature" \
@@ -524,9 +540,10 @@ gh pr create \
 - Reporting module
 
 ## QA Status
-✅ All features tested"
-
-gh pr merge --merge --delete-branch
+✅ All features tested")
+PR_NUM=$(echo $PR_OUTPUT | grep -oE '[0-9]+$')
+echo "Created PR #$PR_NUM"
+gh pr merge $PR_NUM --merge --delete-branch
 ```
 
 **Expected Results**:
@@ -575,10 +592,12 @@ git checkout main
 git checkout -b release/$RELEASE_DATE-$RELEASE_DESC
 git push -u origin release/$RELEASE_DATE-$RELEASE_DESC
 
-# Merge to release
-gh pr create --base release/$RELEASE_DATE-$RELEASE_DESC --head feature/api-v2-$TIMESTAMP \
-  --title "feat!: API v2" --body "Breaking API changes"
-gh pr merge --merge --delete-branch
+# Create and merge feature to release
+PR_OUTPUT=$(gh pr create --base release/$RELEASE_DATE-$RELEASE_DESC --head feature/api-v2-$TIMESTAMP \
+  --title "feat!: API v2" --body "Breaking API changes")
+PR_NUM=$(echo $PR_OUTPUT | grep -oE '[0-9]+$')
+echo "Created PR #$PR_NUM"
+gh pr merge $PR_NUM --merge --delete-branch
 ```
 
 ### Step 5.2: QA Testing on Pre-release
@@ -601,7 +620,8 @@ git push
 
 ```bash
 # Final merge to main
-gh pr create \
+# Create and merge final production release PR
+PR_OUTPUT=$(gh pr create \
   --base main \
   --head release/$RELEASE_DATE-$RELEASE_DESC \
   --title "🚀 MAJOR RELEASE: API v2.0" \
@@ -610,9 +630,10 @@ gh pr create \
 - New auth required
 
 ## Migration Guide
-See RELEASE_NOTES.md"
-
-gh pr merge --merge --delete-branch
+See RELEASE_NOTES.md")
+PR_NUM=$(echo $PR_OUTPUT | grep -oE '[0-9]+$')
+echo "Created PR #$PR_NUM"
+gh pr merge $PR_NUM --merge --delete-branch
 
 # Verify major version
 git checkout main && git pull
