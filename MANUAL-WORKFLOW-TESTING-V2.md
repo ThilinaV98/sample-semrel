@@ -27,7 +27,7 @@ This guide tests the advanced branching strategy with:
 - **Two GitHub Actions** workflows
 - **Semantic versioning** with conventional commits
 
-### Current Setup ✅ **NEW ARCHITECTURE**
+### Current Setup ✅ **WORKING ARCHITECTURE**
 
 #### Branches
 - **main**: Production code only
@@ -37,13 +37,13 @@ This guide tests the advanced branching strategy with:
 - **hotfix/***: Critical fixes
 
 #### Workflows
-1. **release-preparation.yml**: Triggers on feature → release merge
-2. **semantic-release.yml**: Triggers on release → main merge
+1. **release-preparation.yml**: Triggers on PR merge OR push to release/* branches
+2. **semantic-release.yml**: Triggers on push to main (after PR merge)
 
 #### Version Format
-- Production: `1.2.3`
-- Pre-release: `1.2.3-rc.120125` (from release/120125-feature)
-- Hotfix: `1.2.3-hotfix.1`
+- Production: `3.1.0` (stable release)
+- Pre-release: `3.1.0-rc.120925` (from release/120925-description)
+- Note: Date format is DDMMYY (day-month-year with 2-digit year)
 
 ---
 
@@ -69,10 +69,10 @@ ls -la .github/workflows/
 
 # 4. Check .releaserc.json configuration
 cat .releaserc.json | grep -A10 "branches"
-# Should include main, release/*, and hotfix/*
+# Should only include "main" branch for production releases
 
-# 5. Clean up old test files
-rm -f src/feature-*.js src/profiles-*.js src/search-*.js src/dashboard-*.js
+# 5. Clean up old test files (optional)
+rm -f src/payment-*.js src/dashboard-*.js src/analytics-*.js src/api-*.js
 ```
 
 ### Required Dependencies
@@ -114,6 +114,49 @@ main → feature/* → dev → (testing only)
 main → hotfix/* → main
          ↓          ↓
    (critical)  (immediate)
+```
+
+---
+
+## Quick Test - Verified Working Flow
+
+**Purpose**: Simplified test that demonstrates the complete working workflow
+
+```bash
+# 1. Create feature branch
+TIMESTAMP=$(date +%Y%m%d%H%M)
+git checkout main && git pull
+git checkout -b feature/test-$TIMESTAMP
+echo "// Test feature" > src/test-$TIMESTAMP.js
+git add . && git commit -m "feat: add test feature"
+git push -u origin feature/test-$TIMESTAMP
+
+# 2. Create release branch (DDMMYY-description format)
+RELEASE_DATE=$(date +%d%m%y)
+git checkout main
+git checkout -b release/$RELEASE_DATE-test
+git push -u origin release/$RELEASE_DATE-test
+
+# 3. Merge feature to release (triggers release-preparation.yml)
+gh pr create --base release/$RELEASE_DATE-test --head feature/test-$TIMESTAMP \
+  --title "feat: test feature" --body "Test implementation"
+gh pr merge --merge --delete-branch
+
+# 4. Wait for pre-release version
+sleep 30
+git checkout release/$RELEASE_DATE-test && git pull
+grep version package.json  # Should show X.Y.Z-rc.DDMMYY
+
+# 5. Merge to main (triggers semantic-release.yml)
+gh pr create --base main --head release/$RELEASE_DATE-test \
+  --title "Release $RELEASE_DATE" --body "Production release"
+gh pr merge --merge --delete-branch
+
+# 6. Verify production release
+sleep 30
+git checkout main && git pull
+grep version package.json  # Should show X.Y.Z (no rc suffix)
+gh release list --limit=1  # Should show new release
 ```
 
 ---
@@ -166,9 +209,9 @@ git push -u origin feature/payment-gateway-$TIMESTAMP
 
 ```bash
 # Create release branch from main
-# Format: DDMMYY-description
-RELEASE_DATE=$(date +%d%m%y)  # Format: DDMMYY
-RELEASE_DESC="payment-gateway"  # Short description
+# Format: release/DDMMYY-description
+RELEASE_DATE=$(date +%d%m%y)  # Format: DDMMYY (e.g., 120925 for Sept 12, 2025)
+RELEASE_DESC="payment-gateway"  # Short lowercase description
 git checkout main
 git checkout -b release/$RELEASE_DATE-$RELEASE_DESC
 git push -u origin release/$RELEASE_DATE-$RELEASE_DESC
@@ -203,7 +246,7 @@ git pull origin release/$RELEASE_DATE-$RELEASE_DESC
 
 # Verify pre-release version in package.json
 grep version package.json
-# Should show: "version": "X.Y.Z-rc.YYYYMMDD"
+# Should show: "version": "X.Y.Z-rc.DDMMYY" (e.g., "3.1.0-rc.120925")
 
 # Check CHANGELOG.md for draft
 head -30 CHANGELOG.md
@@ -443,15 +486,15 @@ git checkout -b release/$RELEASE_DATE-$RELEASE_DESC
 git push -u origin release/$RELEASE_DATE-$RELEASE_DESC
 
 # Merge all features to release
-gh pr create --base release/v$RELEASE_DATE --head feature/dashboard-$TIMESTAMP1 \
+gh pr create --base release/$RELEASE_DATE-$RELEASE_DESC --head feature/dashboard-$TIMESTAMP1 \
   --title "feat: dashboard" --body "Admin dashboard"
 gh pr merge --merge --delete-branch
 
-gh pr create --base release/v$RELEASE_DATE --head feature/notifications-$TIMESTAMP2 \
+gh pr create --base release/$RELEASE_DATE-$RELEASE_DESC --head feature/notifications-$TIMESTAMP2 \
   --title "feat: notifications" --body "Push notifications"
 gh pr merge --merge --delete-branch
 
-gh pr create --base release/v$RELEASE_DATE --head feature/reports-$TIMESTAMP3 \
+gh pr create --base release/$RELEASE_DATE-$RELEASE_DESC --head feature/reports-$TIMESTAMP3 \
   --title "feat: reports" --body "Reporting module"
 gh pr merge --merge --delete-branch
 ```
@@ -533,7 +576,7 @@ git checkout -b release/$RELEASE_DATE-$RELEASE_DESC
 git push -u origin release/$RELEASE_DATE-$RELEASE_DESC
 
 # Merge to release
-gh pr create --base release/v$RELEASE_DATE --head feature/api-v2-$TIMESTAMP \
+gh pr create --base release/$RELEASE_DATE-$RELEASE_DESC --head feature/api-v2-$TIMESTAMP \
   --title "feat!: API v2" --body "Breaking API changes"
 gh pr merge --merge --delete-branch
 ```
@@ -628,14 +671,15 @@ grep version package.json
 
 **Solution**:
 ```bash
-# Verify workflow file
-cat .github/workflows/release-preparation.yml | grep -A5 "on:"
+# Verify workflow file triggers on both PR and push
+cat .github/workflows/release-preparation.yml | grep -A10 "on:"
 
-# Check if PR was actually merged
-gh pr list --state merged --limit 5
+# Check workflow runs
+gh run list --workflow=release-preparation.yml --limit 5
 
-# Manually trigger if needed
-gh workflow run "📋 Release Preparation"
+# The workflow should trigger on:
+# - PR merge to release/* branches
+# - Direct push to release/* branches
 ```
 
 ### Issue 2: Pre-release Version Not Applied
@@ -646,26 +690,30 @@ gh workflow run "📋 Release Preparation"
 ```bash
 # Check release branch name format
 git branch -r | grep release/
-# Must match: release/v[YYYYMMDD]
+# Must match: release/DDMMYY-description (e.g., release/120925-payment)
 
-# Verify workflow ran
-gh run list --workflow="📋 Release Preparation" --limit=3
+# Pull latest changes from release branch
+git checkout release/DDMMYY-description
+git pull origin release/DDMMYY-description
 
-# Check for errors
-gh run view [RUN_ID] --log
+# Verify workflow ran successfully
+gh run list --workflow=release-preparation.yml --limit=3
 ```
 
-### Issue 3: Semantic Release Validation Fails
+### Issue 3: Semantic Release Not Creating Release
 
-**Problem**: "Only release/* or hotfix/* branches can trigger production releases"
+**Problem**: Semantic-release runs but doesn't create a release
 
 **Solution**:
 ```bash
-# Verify PR source branch
-gh pr view --json headRefName
+# Check if running on push event (not PR event)
+gh run view [RUN_ID] --log | grep "triggered by"
 
-# Ensure it's from release/* or hotfix/*
-# Feature branches cannot merge directly to main
+# Semantic-release v22 doesn't publish on PR events
+# Workflow must trigger on push to main
+
+# If needed, trigger manually:
+gh workflow run semantic-release.yml --ref main
 ```
 
 ### Issue 4: Version Conflicts
@@ -685,20 +733,41 @@ git commit -m "chore: sync version"
 git push
 ```
 
-### Issue 5: CHANGELOG Not Updating
+### Issue 5: PR Creation Fails - No Commits Between Branches
 
-**Problem**: CHANGELOG.md missing entries
+**Problem**: Error "No commits between release/vXXXXXX and feature/..."
 
 **Solution**:
 ```bash
-# Verify @semantic-release/changelog plugin
-grep "@semantic-release/changelog" .releaserc.json
+# This error occurs when using wrong branch name format
+# WRONG: release/v120925 or release/v$RELEASE_DATE
+# CORRECT: release/120925-description or release/$RELEASE_DATE-$RELEASE_DESC
 
-# Check workflow logs for errors
-gh run view --log | grep -i changelog
+# Always use this format for release branches:
+RELEASE_DATE=$(date +%d%m%y)  # DDMMYY format
+RELEASE_DESC="feature-name"   # lowercase with hyphens
+git checkout -b release/$RELEASE_DATE-$RELEASE_DESC
 
-# Manually trigger semantic-release
-NPM_TOKEN="" GITHUB_TOKEN=$GITHUB_TOKEN npx semantic-release --dry-run
+# Example correct command:
+gh pr create --base release/120925-payment --head feature/payment-202509121234
+# NOT: gh pr create --base release/v120925 --head feature/payment-202509121234
+```
+
+### Issue 6: Branch Configuration Errors
+
+**Problem**: Semantic-release fails with EPRERELEASEBRANCHES error
+
+**Solution**:
+```bash
+# Simplify .releaserc.json to only include main branch
+cat .releaserc.json | jq '.branches'
+# Should show: ["main"]
+
+# Pre-release versions are handled by release-preparation.yml
+# Production releases only happen on main branch
+
+# Fix by editing .releaserc.json:
+"branches": ["main"]
 ```
 
 ---
@@ -708,7 +777,7 @@ NPM_TOKEN="" GITHUB_TOKEN=$GITHUB_TOKEN npx semantic-release --dry-run
 ### Pre-release Testing
 - [ ] Feature branch created from main
 - [ ] Conventional commits used
-- [ ] Release branch created with v[YYYYMMDD] format
+- [ ] Release branch created with DDMMYY-description format
 - [ ] Feature PR merged to release branch
 - [ ] Pre-release version generated (X.Y.Z-rc.TIMESTAMP)
 - [ ] RELEASE_NOTES.md created
@@ -766,16 +835,81 @@ grep version package.json
 
 ---
 
+## Recent Fixes and Updates
+
+### Fixed Issues (as of Sept 12, 2025)
+
+1. **Semantic-release Trigger Issue**
+   - **Problem**: Workflow triggered by pull_request event, semantic-release skipped publishing
+   - **Fix**: Changed trigger from `pull_request` to `push` event in semantic-release.yml
+   - **Result**: Now properly creates releases when release branches merge to main
+
+2. **Release Branch Naming**
+   - **Problem**: Inconsistent naming between documentation and examples
+   - **Fix**: Standardized to `release/DDMMYY-description` format
+   - **Example**: `release/120925-payment-gateway`
+
+3. **Branch Configuration**
+   - **Problem**: EPRERELEASEBRANCHES error with multiple pre-release branches
+   - **Fix**: Simplified .releaserc.json to only include main branch
+   - **Note**: Pre-releases handled by release-preparation.yml, not semantic-release
+
+4. **Workflow Conditions**
+   - **Problem**: Release preparation skipped when pushing directly to release branches
+   - **Fix**: Updated condition to handle both PR merges AND push events
+   - **Code**: `if: github.event.pull_request.merged == true || github.event_name == 'push'`
+
+### Current Working Configuration
+
+```json
+// .releaserc.json (simplified)
+{
+  "branches": ["main"],
+  "plugins": [/* ... standard plugins ... */]
+}
+```
+
+```yaml
+# semantic-release.yml triggers
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+```
+
+```yaml
+# release-preparation.yml triggers
+on:
+  pull_request:
+    branches:
+      - 'release/**'
+    types:
+      - closed
+  push:
+    branches:
+      - 'release/**'
+```
+
+---
+
 ## Summary
 
 This advanced branching strategy provides:
 - ✅ **Dual-path workflow**: Direct to release or via dev
-- ✅ **Pre-release versions**: RC versions for QA testing
-- ✅ **Automated workflows**: Two specialized GitHub Actions
+- ✅ **Pre-release versions**: RC versions for QA testing (handled by release-preparation.yml)
+- ✅ **Automated workflows**: Two specialized GitHub Actions with proper triggers
 - ✅ **Flexible deployment**: Standard releases and hotfixes
-- ✅ **Complete traceability**: Full audit trail
-- ✅ **Quality gates**: QA testing before production
+- ✅ **Complete traceability**: Full audit trail with CHANGELOG and releases
+- ✅ **Quality gates**: QA testing on release branches before production
+
+### Key Points to Remember
+1. Release branches use format: `release/DDMMYY-description`
+2. Pre-release versions created by release-preparation workflow
+3. Production releases triggered by push to main (not PR events)
+4. Only main branch configured in .releaserc.json
+5. Version bumping is fully automated - never edit manually
 
 ---
 
-*Version 5.0.0 - Advanced Branching Strategy with QA Release Process*
+*Version 5.1.0 - Updated with fixes and working configuration (Sept 12, 2025)*

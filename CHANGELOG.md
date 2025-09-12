@@ -1,3 +1,26 @@
+## [3.1.1](https://github.com/ThilinaV98/sample-semrel/compare/v3.1.0...v3.1.1) (2025-09-12)
+
+
+### 🐛 Bug Fixes
+
+* correct all branch references in manual testing guide ([54cbbb0](https://github.com/ThilinaV98/sample-semrel/commit/54cbbb0dd79081c818fe41862bd871a7a3ea4a85))
+
+## [3.1.0](https://github.com/ThilinaV98/sample-semrel/compare/v3.0.0...v3.1.0) (2025-09-12)
+
+
+### ✨ Features
+
+* add admin dashboard ([ce2c9b3](https://github.com/ThilinaV98/sample-semrel/commit/ce2c9b3c96ce20d7e9f59e791bdc2c3a353c606b))
+
+
+### 🐛 Bug Fixes
+
+* simplify semantic-release config for main branch only ([e3d56b6](https://github.com/ThilinaV98/sample-semrel/commit/e3d56b604bb0fc5000073c7dc0280500f9645d88))
+
+## [3.1.0-rc.120925] - 2025-09-12 (Pre-release)
+
+### Release Candidate for release/120925-dashboard-feature
+
 ## [3.0.0](https://github.com/ThilinaV98/sample-semrel/compare/v2.0.2...v3.0.0) (2025-09-12)
 
 
