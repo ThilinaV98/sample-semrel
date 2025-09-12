@@ -1,3 +1,42 @@
+## [2.0.0](https://github.com/ThilinaV98/sample-semrel/compare/v1.1.1...v2.0.0) (2025-09-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* Release branch naming changed from release/vYYYYMMDD to release/DDMMYY-description format
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+### ✨ Features
+
+* add feature A functionality ([d05175a](https://github.com/ThilinaV98/sample-semrel/commit/d05175accdf129f00b47f3dc62e7bca9bc9c95c4))
+* add feature A functionality ([519beb2](https://github.com/ThilinaV98/sample-semrel/commit/519beb22812b2114a5bed2ff4d634eb316ab3960))
+* add new versioning test feature ([1fd766c](https://github.com/ThilinaV98/sample-semrel/commit/1fd766c22c597a123c88340f772dc56b3a62606c))
+* add user profile management ([06e3e8c](https://github.com/ThilinaV98/sample-semrel/commit/06e3e8c8b405dfda20cff8aeabf71793f07e01d4))
+* implement advanced branching strategy with QA release process ([ec751ee](https://github.com/ThilinaV98/sample-semrel/commit/ec751eecedceababb910a5177f2438566b6b43f2))
+* implement search functionality ([cb7efc1](https://github.com/ThilinaV98/sample-semrel/commit/cb7efc16cc57f904112747b3edd6c6ebe0515f0a))
+
+
+### 🐛 Bug Fixes
+
+* add payment amount validation ([ebd9c55](https://github.com/ThilinaV98/sample-semrel/commit/ebd9c553d43ed2a74e49f674a3e35c7ae11b71b4))
+* add payment amount validation ([3bff219](https://github.com/ThilinaV98/sample-semrel/commit/3bff219e75869f185441ed5ececca486d0cbf603))
+* add payment amount validation ([4efed9e](https://github.com/ThilinaV98/sample-semrel/commit/4efed9ef58eb0ff1d3331786106fe3c080cbd595))
+* handle both PR merge and direct push events in release-preparation workflow ([8c73aed](https://github.com/ThilinaV98/sample-semrel/commit/8c73aed89478525a39a1fe43857a7b8b78cacfab))
+* remove duplicate changelog workflow causing tag conflicts ([d4635a7](https://github.com/ThilinaV98/sample-semrel/commit/d4635a77482c2d04e3b34624792ea01041250264))
+* resolve critical bug in authentication ([fb433c7](https://github.com/ThilinaV98/sample-semrel/commit/fb433c7885dcb0408fdb573d64610996702f803e))
+* resolve critical bug in authentication ([fcd7228](https://github.com/ThilinaV98/sample-semrel/commit/fcd722843c6a2b75b2d203e8c79aea3ebd27dbcf))
+* sync version to v1.3.0 and update changelog ([c14858e](https://github.com/ThilinaV98/sample-semrel/commit/c14858e29695f122a2fc82d32ac9fa65e4f9e2d0)), closes [#10](https://github.com/ThilinaV98/sample-semrel/issues/10) [#11](https://github.com/ThilinaV98/sample-semrel/issues/11)
+* test changelog workflow conflict resolution ([6399751](https://github.com/ThilinaV98/sample-semrel/commit/639975159925b07479b98a152c8ec74f0871d531))
+
+
+### ⚡ Performance
+
+* optimize database queries ([12872dc](https://github.com/ThilinaV98/sample-semrel/commit/12872dcceb8a51a99c84d7d2ae5e7863b87175af))
+* optimize database queries ([d4c0883](https://github.com/ThilinaV98/sample-semrel/commit/d4c0883658638e07d2b7fccf43e848f370127bab))
+
 ## [1.3.2-rc.120925] - 2025-09-12 (Pre-release)
 
 ### Release Candidate for release/120925-payment-gateway
@@ -61,4 +100,3 @@
 * resolve Super-Linter v5 validation configuration conflict ([ecab1cd](https://github.com/username/sample-semantic-release/commit/ecab1cd28dd98a10b12a0f06e3f1dc523809cf6e))
 * resolve unused parameter eslint warning in error handler ([71e467d](https://github.com/username/sample-semantic-release/commit/71e467d10c48ad5c9167b684b643f10a71d5ef01))
 * resolve workflow validation issues ([ee638f8](https://github.com/username/sample-semantic-release/commit/ee638f88109980f5666f9679b2edcfeea1491436))
-
