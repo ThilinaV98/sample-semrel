@@ -1,3 +1,10 @@
+## [2.0.2](https://github.com/ThilinaV98/sample-semrel/compare/v2.0.1...v2.0.2) (2025-09-12)
+
+
+### 🐛 Bug Fixes
+
+* add payment amount validation ([334309a](https://github.com/ThilinaV98/sample-semrel/commit/334309a7dada1a37848f9cb14a200c4dd611e143))
+
 ## [2.0.1](https://github.com/ThilinaV98/sample-semrel/compare/v2.0.0...v2.0.1) (2025-09-12)
 
 
