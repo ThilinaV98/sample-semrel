@@ -20,15 +20,15 @@ jobs:
   prepare-release:
     name: 🚀 Prepare Release
     runs-on: ubuntu-latest
-    # Only run if PR was merged (not just closed)
-    if: github.event.pull_request.merged == true
+    # Run if PR was merged OR if it's a push to release branch
+    if: github.event.pull_request.merged == true || github.event_name == 'push'
     
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.base.ref }}
+          ref: ${{ github.event.pull_request.base.ref || github.ref }}
           token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: 🟢 Setup Node.js
@@ -78,7 +78,12 @@ jobs:
         run: |
           BASE_VERSION="${{ steps.base_version.outputs.base_version }}"
           BUMP_TYPE="${{ steps.version_bump.outputs.bump_type }}"
-          BRANCH_NAME="${{ github.event.pull_request.base.ref }}"
+          # Get branch name from PR or push event
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BRANCH_NAME="${{ github.event.pull_request.base.ref }}"
+          else
+            BRANCH_NAME="${{ github.ref_name }}"
+          fi
           
           # Extract date from branch name (release/120125-feature)
           # Format: DDMMYY-description
@@ -110,7 +115,12 @@ jobs:
           # Create changelog entry for pre-release
           VERSION="${{ steps.prerelease.outputs.new_version }}"
           DATE=$(date +%Y-%m-%d)
-          BRANCH_NAME="${{ github.event.pull_request.base.ref }}"
+          # Get branch name from PR or push event
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BRANCH_NAME="${{ github.event.pull_request.base.ref }}"
+          else
+            BRANCH_NAME="${{ github.ref_name }}"
+          fi
           
           # Create temporary changelog entry
           cat > CHANGELOG_DRAFT.md << EOF
@@ -151,7 +161,12 @@ jobs:
       - name: 📝 Generate release notes draft
         run: |
           VERSION="${{ steps.prerelease.outputs.new_version }}"
-          BRANCH_NAME="${{ github.event.pull_request.base.ref }}"
+          # Get branch name from PR or push event
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BRANCH_NAME="${{ github.event.pull_request.base.ref }}"
+          else
+            BRANCH_NAME="${{ github.ref_name }}"
+          fi
           
           cat > RELEASE_NOTES.md << EOF
           # Release Notes - $VERSION
@@ -207,6 +222,7 @@ jobs:
           git push
       
       - name: 📢 Create PR comment
+        if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
@@ -218,7 +234,7 @@ jobs:
             ### 📊 Version Bump Analysis
             - **Bump Type**: ${bumpType}
             - **New Version**: ${version}
-            - **Branch**: ${{ github.event.pull_request.base.ref }}
+            - **Branch**: ${{ github.event.pull_request.base.ref || github.ref_name }}
             
             ### ✅ Completed Actions
             - ✔️ Generated pre-release version
@@ -233,8 +249,8 @@ jobs:
             4. Semantic release will create the final version
             
             ### 🔗 Resources
-            - [Changelog](https://github.com/${{ github.repository }}/blob/${{ github.event.pull_request.base.ref }}/CHANGELOG.md)
-            - [Release Notes](https://github.com/${{ github.repository }}/blob/${{ github.event.pull_request.base.ref }}/RELEASE_NOTES.md)`;
+            - [Changelog](https://github.com/${{ github.repository }}/blob/${{ github.event.pull_request.base.ref || github.ref_name }}/CHANGELOG.md)
+            - [Release Notes](https://github.com/${{ github.repository }}/blob/${{ github.event.pull_request.base.ref || github.ref_name }}/RELEASE_NOTES.md)`;
             
             github.rest.issues.createComment({
               owner: context.repo.owner,
