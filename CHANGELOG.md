@@ -1,3 +1,11 @@
+## [3.2.0-rc.120925] - 2025-09-12 (Pre-release)
+
+### Release Candidate for release/120925-multi-feature
+
+### ✨ Features
+* add reporting module ([b73ddf4](https://github.com/ThilinaV98/sample-semrel/commit/b73ddf4))
+### ✨ Features
+* implement push notifications ([904c119](https://github.com/ThilinaV98/sample-semrel/commit/904c119))
 ## [3.1.1](https://github.com/ThilinaV98/sample-semrel/compare/v3.1.0...v3.1.1) (2025-09-12)
 
 
