@@ -1,3 +1,7 @@
+## [1.3.1-rc.120925] - 2025-09-12 (Pre-release)
+
+### Release Candidate for release/120925-payment-gateway
+
 ## [1.3.0](https://github.com/ThilinaV98/sample-semrel/compare/v1.2.0...v1.3.0) (2025-09-11)
 
 ### Features
