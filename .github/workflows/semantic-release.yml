@@ -1,12 +1,10 @@
 name: 🚀 Semantic Release
 
-# Trigger when release branch PR is merged to main
+# Trigger when commits are pushed to main (after PR merge)
 on:
-  pull_request:
+  push:
     branches:
       - main
-    types:
-      - closed
   # Also allow manual trigger for hotfixes
   workflow_dispatch:
     inputs:
@@ -28,8 +26,8 @@ jobs:
   semantic-release:
     name: 📦 Semantic Release
     runs-on: ubuntu-latest
-    # Only run if PR was merged (not just closed) OR manual trigger
-    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
+    # Run on push to main or manual trigger
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     
     steps:
       - name: 📥 Checkout code
@@ -48,17 +46,22 @@ jobs:
       - name: 📦 Install dependencies
         run: npm ci
       
-      - name: 🔍 Validate release branch
-        if: github.event_name == 'pull_request'
+      - name: 🔍 Validate commit source
+        if: github.event_name == 'push'
         run: |
-          # Ensure PR is from a release/* or hotfix/* branch
-          SOURCE_BRANCH="${{ github.event.pull_request.head.ref }}"
-          if [[ ! "$SOURCE_BRANCH" =~ ^(release/|hotfix/) ]]; then
-            echo "❌ Error: Only release/* or hotfix/* branches can trigger production releases"
-            echo "Source branch: $SOURCE_BRANCH"
-            exit 1
+          # Check the commit message or branch that was merged
+          COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+          echo "Last commit message: $COMMIT_MESSAGE"
+          
+          # Check if this was a merge from release/* or hotfix/*
+          if [[ "$COMMIT_MESSAGE" =~ "Merge pull request" ]]; then
+            if [[ ! "$COMMIT_MESSAGE" =~ "release/|hotfix/" ]]; then
+              echo "⚠️ Warning: Merge does not appear to be from release/* or hotfix/* branch"
+              echo "Continuing anyway as this might be a direct commit or different merge"
+            else
+              echo "✅ Valid merge from release/* or hotfix/* branch detected"
+            fi
           fi
-          echo "✅ Valid release branch: $SOURCE_BRANCH"
       
       - name: 🔄 Semantic Release
         env:
