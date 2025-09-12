@@ -1,3 +1,10 @@
+## [2.0.1](https://github.com/ThilinaV98/sample-semrel/compare/v2.0.0...v2.0.1) (2025-09-12)
+
+
+### 🐛 Bug Fixes
+
+* change semantic-release trigger from PR to push event ([d05d16e](https://github.com/ThilinaV98/sample-semrel/commit/d05d16e3e610f1542bbf76cc60c20ef9b89afc70))
+
 ## [2.0.0](https://github.com/ThilinaV98/sample-semrel/compare/v1.1.1...v2.0.0) (2025-09-12)
 
 
