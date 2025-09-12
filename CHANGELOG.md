@@ -1,3 +1,10 @@
+## [3.2.1](https://github.com/ThilinaV98/sample-semrel/compare/v3.2.0...v3.2.1) (2025-09-12)
+
+
+### 🐛 Bug Fixes
+
+* add API deprecation warnings ([90b43a8](https://github.com/ThilinaV98/sample-semrel/commit/90b43a8900d357b1262255d3d46e21e27df952c3))
+
 ## [3.2.0](https://github.com/ThilinaV98/sample-semrel/compare/v3.1.1...v3.2.0) (2025-09-12)
 
 
