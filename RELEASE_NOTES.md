@@ -1,12 +1,12 @@
-# Release Notes - 1.3.2-rc.120925
+# Release Notes - 3.1.0-rc.120925
 
-## 📦 Pre-release: release/120925-payment-gateway
+## 📦 Pre-release: release/120925-dashboard-feature
 
 This is a release candidate for testing. Please verify all changes before promoting to production.
 
 ### 🎯 Release Highlights
-- fix: add payment amount validation
-- chore(release): prepare pre-release 1.3.1-rc.120925 [skip ci]
+- Merge pull request #24 from ThilinaV98/feature/dashboard-202509121343
+- feat: add admin dashboard
 ### 🧪 Testing Checklist
 - [ ] Unit tests passing
 - [ ] Integration tests passing
@@ -16,7 +16,7 @@ This is a release candidate for testing. Please verify all changes before promot
 - [ ] Documentation updated
 
 ### 📋 Deployment Notes
-- Pre-release version: 1.3.2-rc.120925
+- Pre-release version: 3.1.0-rc.120925
 - Target branch: main
 - Estimated production date: TBD
 
@@ -24,5 +24,5 @@ This is a release candidate for testing. Please verify all changes before promot
 - None identified
 
 ### 👥 Contributors
-- GitHub Action
 - Thilina Vithana
+- ThilinaV98

@@ -1,3 +1,7 @@
+## [3.1.0-rc.120925] - 2025-09-12 (Pre-release)
+
+### Release Candidate for release/120925-dashboard-feature
+
 ## [3.0.0](https://github.com/ThilinaV98/sample-semrel/compare/v2.0.2...v3.0.0) (2025-09-12)
 
 
