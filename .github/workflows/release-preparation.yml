@@ -1,0 +1,244 @@
+name: 📋 Release Preparation
+
+# Trigger when feature branches are merged into release branches
+on:
+  pull_request:
+    branches:
+      - 'release/**'
+    types:
+      - closed
+  push:
+    branches:
+      - 'release/**'
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  prepare-release:
+    name: 🚀 Prepare Release
+    runs-on: ubuntu-latest
+    # Only run if PR was merged (not just closed)
+    if: github.event.pull_request.merged == true
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.base.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: 📦 Install dependencies
+        run: npm ci
+      
+      - name: 🔍 Extract base version
+        id: base_version
+        run: |
+          # Get current version from package.json
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          
+          # Remove any existing pre-release suffix
+          BASE_VERSION=$(echo $CURRENT_VERSION | sed 's/-.*$//')
+          echo "base_version=$BASE_VERSION" >> $GITHUB_OUTPUT
+      
+      - name: 🔄 Determine version bump
+        id: version_bump
+        run: |
+          # Analyze commits since last release
+          COMMITS=$(git log --pretty=format:"%s" origin/main..HEAD)
+          
+          # Initialize version bump type
+          BUMP_TYPE="patch"
+          
+          # Check for breaking changes
+          if echo "$COMMITS" | grep -qE "(BREAKING CHANGE|feat!)"; then
+            BUMP_TYPE="major"
+          # Check for features
+          elif echo "$COMMITS" | grep -q "^feat:"; then
+            BUMP_TYPE="minor"
+          # Check for fixes, perf, or refactor
+          elif echo "$COMMITS" | grep -qE "^(fix|perf|refactor):"; then
+            BUMP_TYPE="patch"
+          fi
+          
+          echo "bump_type=$BUMP_TYPE" >> $GITHUB_OUTPUT
+      
+      - name: 📝 Generate pre-release version
+        id: prerelease
+        run: |
+          BASE_VERSION="${{ steps.base_version.outputs.base_version }}"
+          BUMP_TYPE="${{ steps.version_bump.outputs.bump_type }}"
+          BRANCH_NAME="${{ github.event.pull_request.base.ref }}"
+          
+          # Extract date from branch name (release/120125-feature)
+          # Format: DDMMYY-description
+          DATE_PART=$(echo $BRANCH_NAME | sed 's/release\///' | cut -d'-' -f1)
+          
+          # Calculate new version based on bump type
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$BASE_VERSION"
+          
+          if [ "$BUMP_TYPE" = "major" ]; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+          elif [ "$BUMP_TYPE" = "minor" ]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          else
+            PATCH=$((PATCH + 1))
+          fi
+          
+          # Create pre-release version with DDMMYY format
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}-rc.${DATE_PART}"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          
+          # Update package.json
+          npm version $NEW_VERSION --no-git-tag-version
+      
+      - name: 📋 Generate changelog draft
+        run: |
+          # Create changelog entry for pre-release
+          VERSION="${{ steps.prerelease.outputs.new_version }}"
+          DATE=$(date +%Y-%m-%d)
+          BRANCH_NAME="${{ github.event.pull_request.base.ref }}"
+          
+          # Create temporary changelog entry
+          cat > CHANGELOG_DRAFT.md << EOF
+          ## [$VERSION] - $DATE (Pre-release)
+          
+          ### Release Candidate for $BRANCH_NAME
+          
+          EOF
+          
+          # Analyze commits and categorize them
+          git log --pretty=format:"%s|%h" origin/main..HEAD | while IFS='|' read -r message hash; do
+            if [[ $message == feat!* ]] || [[ $message == *"BREAKING CHANGE"* ]]; then
+              echo "### 💥 BREAKING CHANGES" >> CHANGELOG_DRAFT.md
+              echo "* ${message#feat!: } ([$hash](https://github.com/${{ github.repository }}/commit/$hash))" >> CHANGELOG_DRAFT.md
+            elif [[ $message == feat:* ]]; then
+              echo "### ✨ Features" >> CHANGELOG_DRAFT.md
+              echo "* ${message#feat: } ([$hash](https://github.com/${{ github.repository }}/commit/$hash))" >> CHANGELOG_DRAFT.md
+            elif [[ $message == fix:* ]]; then
+              echo "### 🐛 Bug Fixes" >> CHANGELOG_DRAFT.md
+              echo "* ${message#fix: } ([$hash](https://github.com/${{ github.repository }}/commit/$hash))" >> CHANGELOG_DRAFT.md
+            elif [[ $message == perf:* ]]; then
+              echo "### ⚡ Performance Improvements" >> CHANGELOG_DRAFT.md
+              echo "* ${message#perf: } ([$hash](https://github.com/${{ github.repository }}/commit/$hash))" >> CHANGELOG_DRAFT.md
+            elif [[ $message == refactor:* ]]; then
+              echo "### ♻️ Code Refactoring" >> CHANGELOG_DRAFT.md
+              echo "* ${message#refactor: } ([$hash](https://github.com/${{ github.repository }}/commit/$hash))" >> CHANGELOG_DRAFT.md
+            fi
+          done
+          
+          # Prepend to existing changelog
+          if [ -f CHANGELOG.md ]; then
+            cat CHANGELOG.md >> CHANGELOG_DRAFT.md
+            mv CHANGELOG_DRAFT.md CHANGELOG.md
+          else
+            mv CHANGELOG_DRAFT.md CHANGELOG.md
+          fi
+      
+      - name: 📝 Generate release notes draft
+        run: |
+          VERSION="${{ steps.prerelease.outputs.new_version }}"
+          BRANCH_NAME="${{ github.event.pull_request.base.ref }}"
+          
+          cat > RELEASE_NOTES.md << EOF
+          # Release Notes - $VERSION
+          
+          ## 📦 Pre-release: $BRANCH_NAME
+          
+          This is a release candidate for testing. Please verify all changes before promoting to production.
+          
+          ### 🎯 Release Highlights
+          EOF
+          
+          # Add commit summary
+          git log --pretty=format:"- %s" origin/main..HEAD >> RELEASE_NOTES.md
+          
+          cat >> RELEASE_NOTES.md << EOF
+          
+          ### 🧪 Testing Checklist
+          - [ ] Unit tests passing
+          - [ ] Integration tests passing
+          - [ ] Manual QA completed
+          - [ ] Performance benchmarks acceptable
+          - [ ] Security scan completed
+          - [ ] Documentation updated
+          
+          ### 📋 Deployment Notes
+          - Pre-release version: $VERSION
+          - Target branch: main
+          - Estimated production date: TBD
+          
+          ### ⚠️ Known Issues
+          - None identified
+          
+          ### 👥 Contributors
+          EOF
+          
+          # Add contributors
+          git log --pretty=format:"%an" origin/main..HEAD | sort -u | while read author; do
+            echo "- $author" >> RELEASE_NOTES.md
+          done
+      
+      - name: 💾 Commit changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          git add package.json package-lock.json CHANGELOG.md RELEASE_NOTES.md
+          git commit -m "chore(release): prepare pre-release ${{ steps.prerelease.outputs.new_version }} [skip ci]
+          
+          - Updated version to ${{ steps.prerelease.outputs.new_version }}
+          - Generated changelog draft
+          - Created release notes draft"
+          
+          git push
+      
+      - name: 📢 Create PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = '${{ steps.prerelease.outputs.new_version }}';
+            const bumpType = '${{ steps.version_bump.outputs.bump_type }}';
+            
+            const comment = `## 🎉 Pre-release Prepared: ${version}
+            
+            ### 📊 Version Bump Analysis
+            - **Bump Type**: ${bumpType}
+            - **New Version**: ${version}
+            - **Branch**: ${{ github.event.pull_request.base.ref }}
+            
+            ### ✅ Completed Actions
+            - ✔️ Generated pre-release version
+            - ✔️ Updated CHANGELOG.md draft
+            - ✔️ Created RELEASE_NOTES.md
+            - ✔️ Updated package.json
+            
+            ### 📋 Next Steps
+            1. Complete QA testing on this release branch
+            2. Review and update release notes as needed
+            3. Once approved, create PR to merge into main
+            4. Semantic release will create the final version
+            
+            ### 🔗 Resources
+            - [Changelog](https://github.com/${{ github.repository }}/blob/${{ github.event.pull_request.base.ref }}/CHANGELOG.md)
+            - [Release Notes](https://github.com/${{ github.repository }}/blob/${{ github.event.pull_request.base.ref }}/RELEASE_NOTES.md)`;
+            
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
