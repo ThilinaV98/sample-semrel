@@ -1,3 +1,10 @@
+## [3.2.2](https://github.com/ThilinaV98/sample-semrel/compare/v3.2.1...v3.2.2) (2025-09-12)
+
+
+### 🐛 Bug Fixes
+
+* correct PR merge commands in workflow testing documentation ([f3f8bc4](https://github.com/ThilinaV98/sample-semrel/commit/f3f8bc4cc23a5a42b965bd7337d5f925aa903fa0))
+
 ## [3.2.1](https://github.com/ThilinaV98/sample-semrel/compare/v3.2.0...v3.2.1) (2025-09-12)
 
 
