@@ -1,3 +1,15 @@
+## [3.0.0](https://github.com/ThilinaV98/sample-semrel/compare/v2.0.2...v3.0.0) (2025-09-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* Input validation now required
+CVE-2025-001 mitigation
+
+### 🐛 Bug Fixes
+
+* patch critical SQL injection vulnerability ([b08b26f](https://github.com/ThilinaV98/sample-semrel/commit/b08b26f475d0ea759b1356b8de810d8c30e38c2b))
+
 ## [2.0.2](https://github.com/ThilinaV98/sample-semrel/compare/v2.0.1...v2.0.2) (2025-09-12)
 
 
