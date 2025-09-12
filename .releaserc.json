@@ -1,14 +1,6 @@
 {
   "branches": [
-    "main",
-    {
-      "name": "release/*",
-      "prerelease": "rc"
-    },
-    {
-      "name": "hotfix/*",
-      "prerelease": "hotfix"
-    }
+    "main"
   ],
   "plugins": [
     [
