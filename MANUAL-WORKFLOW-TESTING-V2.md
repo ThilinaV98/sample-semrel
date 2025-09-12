@@ -118,6 +118,49 @@ main → hotfix/* → main
 
 ---
 
+## Quick Test - Verified Working Flow
+
+**Purpose**: Simplified test that demonstrates the complete working workflow
+
+```bash
+# 1. Create feature branch
+TIMESTAMP=$(date +%Y%m%d%H%M)
+git checkout main && git pull
+git checkout -b feature/test-$TIMESTAMP
+echo "// Test feature" > src/test-$TIMESTAMP.js
+git add . && git commit -m "feat: add test feature"
+git push -u origin feature/test-$TIMESTAMP
+
+# 2. Create release branch (DDMMYY-description format)
+RELEASE_DATE=$(date +%d%m%y)
+git checkout main
+git checkout -b release/$RELEASE_DATE-test
+git push -u origin release/$RELEASE_DATE-test
+
+# 3. Merge feature to release (triggers release-preparation.yml)
+gh pr create --base release/$RELEASE_DATE-test --head feature/test-$TIMESTAMP \
+  --title "feat: test feature" --body "Test implementation"
+gh pr merge --merge --delete-branch
+
+# 4. Wait for pre-release version
+sleep 30
+git checkout release/$RELEASE_DATE-test && git pull
+grep version package.json  # Should show X.Y.Z-rc.DDMMYY
+
+# 5. Merge to main (triggers semantic-release.yml)
+gh pr create --base main --head release/$RELEASE_DATE-test \
+  --title "Release $RELEASE_DATE" --body "Production release"
+gh pr merge --merge --delete-branch
+
+# 6. Verify production release
+sleep 30
+git checkout main && git pull
+grep version package.json  # Should show X.Y.Z (no rc suffix)
+gh release list --limit=1  # Should show new release
+```
+
+---
+
 ## Test Scenario 1: Direct Feature to Release
 
 **Purpose**: Test feature going directly to release branch for QA
@@ -166,9 +209,9 @@ git push -u origin feature/payment-gateway-$TIMESTAMP
 
 ```bash
 # Create release branch from main
-# Format: DDMMYY-description
-RELEASE_DATE=$(date +%d%m%y)  # Format: DDMMYY
-RELEASE_DESC="payment-gateway"  # Short description
+# Format: release/DDMMYY-description
+RELEASE_DATE=$(date +%d%m%y)  # Format: DDMMYY (e.g., 120925 for Sept 12, 2025)
+RELEASE_DESC="payment-gateway"  # Short lowercase description
 git checkout main
 git checkout -b release/$RELEASE_DATE-$RELEASE_DESC
 git push -u origin release/$RELEASE_DATE-$RELEASE_DESC
@@ -766,16 +809,81 @@ grep version package.json
 
 ---
 
+## Recent Fixes and Updates
+
+### Fixed Issues (as of Sept 12, 2025)
+
+1. **Semantic-release Trigger Issue**
+   - **Problem**: Workflow triggered by pull_request event, semantic-release skipped publishing
+   - **Fix**: Changed trigger from `pull_request` to `push` event in semantic-release.yml
+   - **Result**: Now properly creates releases when release branches merge to main
+
+2. **Release Branch Naming**
+   - **Problem**: Inconsistent naming between documentation and examples
+   - **Fix**: Standardized to `release/DDMMYY-description` format
+   - **Example**: `release/120925-payment-gateway`
+
+3. **Branch Configuration**
+   - **Problem**: EPRERELEASEBRANCHES error with multiple pre-release branches
+   - **Fix**: Simplified .releaserc.json to only include main branch
+   - **Note**: Pre-releases handled by release-preparation.yml, not semantic-release
+
+4. **Workflow Conditions**
+   - **Problem**: Release preparation skipped when pushing directly to release branches
+   - **Fix**: Updated condition to handle both PR merges AND push events
+   - **Code**: `if: github.event.pull_request.merged == true || github.event_name == 'push'`
+
+### Current Working Configuration
+
+```json
+// .releaserc.json (simplified)
+{
+  "branches": ["main"],
+  "plugins": [/* ... standard plugins ... */]
+}
+```
+
+```yaml
+# semantic-release.yml triggers
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+```
+
+```yaml
+# release-preparation.yml triggers
+on:
+  pull_request:
+    branches:
+      - 'release/**'
+    types:
+      - closed
+  push:
+    branches:
+      - 'release/**'
+```
+
+---
+
 ## Summary
 
 This advanced branching strategy provides:
 - ✅ **Dual-path workflow**: Direct to release or via dev
-- ✅ **Pre-release versions**: RC versions for QA testing
-- ✅ **Automated workflows**: Two specialized GitHub Actions
+- ✅ **Pre-release versions**: RC versions for QA testing (handled by release-preparation.yml)
+- ✅ **Automated workflows**: Two specialized GitHub Actions with proper triggers
 - ✅ **Flexible deployment**: Standard releases and hotfixes
-- ✅ **Complete traceability**: Full audit trail
-- ✅ **Quality gates**: QA testing before production
+- ✅ **Complete traceability**: Full audit trail with CHANGELOG and releases
+- ✅ **Quality gates**: QA testing on release branches before production
+
+### Key Points to Remember
+1. Release branches use format: `release/DDMMYY-description`
+2. Pre-release versions created by release-preparation workflow
+3. Production releases triggered by push to main (not PR events)
+4. Only main branch configured in .releaserc.json
+5. Version bumping is fully automated - never edit manually
 
 ---
 
-*Version 5.0.0 - Advanced Branching Strategy with QA Release Process*
+*Version 5.1.0 - Updated with fixes and working configuration (Sept 12, 2025)*
