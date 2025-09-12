@@ -1,3 +1,10 @@
+## [3.1.1](https://github.com/ThilinaV98/sample-semrel/compare/v3.1.0...v3.1.1) (2025-09-12)
+
+
+### 🐛 Bug Fixes
+
+* correct all branch references in manual testing guide ([54cbbb0](https://github.com/ThilinaV98/sample-semrel/commit/54cbbb0dd79081c818fe41862bd871a7a3ea4a85))
+
 ## [3.1.0](https://github.com/ThilinaV98/sample-semrel/compare/v3.0.0...v3.1.0) (2025-09-12)
 
 
