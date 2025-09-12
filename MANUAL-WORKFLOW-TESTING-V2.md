@@ -1,6 +1,6 @@
 # Manual Workflow Testing Guide - Advanced Branching Strategy
 
-> **Version**: 5.0.0  
+> **Version**: 5.2.0  
 > **Last Updated**: 2025-01-12  
 > **Purpose**: Comprehensive testing guide for the new branching strategy with QA release process
 
@@ -138,9 +138,10 @@ git checkout -b release/$RELEASE_DATE-test
 git push -u origin release/$RELEASE_DATE-test
 
 # 3. Merge feature to release (triggers release-preparation.yml)
-gh pr create --base release/$RELEASE_DATE-test --head feature/test-$TIMESTAMP \
-  --title "feat: test feature" --body "Test implementation"
-gh pr merge --merge --delete-branch
+PR_OUTPUT=$(gh pr create --base release/$RELEASE_DATE-test --head feature/test-$TIMESTAMP \
+  --title "feat: test feature" --body "Test implementation")
+PR_NUM=$(echo $PR_OUTPUT | grep -oE '[0-9]+$')
+gh pr merge $PR_NUM --merge --delete-branch
 
 # 4. Wait for pre-release version
 sleep 30
@@ -148,9 +149,10 @@ git checkout release/$RELEASE_DATE-test && git pull
 grep version package.json  # Should show X.Y.Z-rc.DDMMYY
 
 # 5. Merge to main (triggers semantic-release.yml)
-gh pr create --base main --head release/$RELEASE_DATE-test \
-  --title "Release $RELEASE_DATE" --body "Production release"
-gh pr merge --merge --delete-branch
+PR_OUTPUT=$(gh pr create --base main --head release/$RELEASE_DATE-test \
+  --title "Release $RELEASE_DATE" --body "Production release")
+PR_NUM=$(echo $PR_OUTPUT | grep -oE '[0-9]+$')
+gh pr merge $PR_NUM --merge --delete-branch
 
 # 6. Verify production release
 sleep 30
@@ -234,7 +236,9 @@ Payment gateway implementation for processing transactions
 - [ ] Manual QA completed"
 
 # Merge PR (triggers release-preparation.yml)
-gh pr merge --merge --delete-branch
+# Note: Get PR number from previous create command output
+PR_NUM=$(gh pr list --head feature/payment-gateway-$TIMESTAMP --json number --jq '.[0].number')
+gh pr merge $PR_NUM --merge --delete-branch
 ```
 
 ### Step 1.4: Verify Pre-release Creation
@@ -285,7 +289,8 @@ gh pr create \
 - Payment validation added"
 
 # Merge to trigger semantic-release.yml
-gh pr merge --merge --delete-branch
+PR_NUM=$(gh pr list --head release/$RELEASE_DATE-$RELEASE_DESC --json number --jq '.[0].number')
+gh pr merge $PR_NUM --merge --delete-branch
 ```
 
 ### Step 1.7: Verify Production Release
@@ -347,7 +352,8 @@ gh pr create \
   --body "Adding analytics for integration testing"
 
 # Merge to dev
-gh pr merge --merge --delete-branch
+PR_NUM=$(gh pr list --head feature/user-analytics-$TIMESTAMP --json number --jq '.[0].number')
+gh pr merge $PR_NUM --merge --delete-branch
 
 # Verify in dev
 git checkout dev && git pull origin dev
@@ -420,7 +426,8 @@ gh pr create \
 - SQL injection prevention"
 
 # Merge immediately
-gh pr merge --merge --delete-branch
+PR_NUM=$(gh pr list --head hotfix/critical-security-patch --json number --jq '.[0].number')
+gh pr merge $PR_NUM --merge --delete-branch
 ```
 
 ### Step 3.3: Verify Hotfix Release
@@ -486,17 +493,23 @@ git checkout -b release/$RELEASE_DATE-$RELEASE_DESC
 git push -u origin release/$RELEASE_DATE-$RELEASE_DESC
 
 # Merge all features to release
-gh pr create --base release/$RELEASE_DATE-$RELEASE_DESC --head feature/dashboard-$TIMESTAMP1 \
-  --title "feat: dashboard" --body "Admin dashboard"
-gh pr merge --merge --delete-branch
+# Feature 1: Dashboard
+PR_OUTPUT=$(gh pr create --base release/$RELEASE_DATE-$RELEASE_DESC --head feature/dashboard-$TIMESTAMP1 \
+  --title "feat: dashboard" --body "Admin dashboard")
+PR_NUM=$(echo $PR_OUTPUT | grep -oE '[0-9]+$')
+gh pr merge $PR_NUM --merge --delete-branch
 
-gh pr create --base release/$RELEASE_DATE-$RELEASE_DESC --head feature/notifications-$TIMESTAMP2 \
-  --title "feat: notifications" --body "Push notifications"
-gh pr merge --merge --delete-branch
+# Feature 2: Notifications
+PR_OUTPUT=$(gh pr create --base release/$RELEASE_DATE-$RELEASE_DESC --head feature/notifications-$TIMESTAMP2 \
+  --title "feat: notifications" --body "Push notifications")
+PR_NUM=$(echo $PR_OUTPUT | grep -oE '[0-9]+$')
+gh pr merge $PR_NUM --merge --delete-branch
 
-gh pr create --base release/$RELEASE_DATE-$RELEASE_DESC --head feature/reports-$TIMESTAMP3 \
-  --title "feat: reports" --body "Reporting module"
-gh pr merge --merge --delete-branch
+# Feature 3: Reports
+PR_OUTPUT=$(gh pr create --base release/$RELEASE_DATE-$RELEASE_DESC --head feature/reports-$TIMESTAMP3 \
+  --title "feat: reports" --body "Reporting module")
+PR_NUM=$(echo $PR_OUTPUT | grep -oE '[0-9]+$')
+gh pr merge $PR_NUM --merge --delete-branch
 ```
 
 ### Step 4.3: Verify Combined Pre-release
@@ -526,7 +539,8 @@ gh pr create \
 ## QA Status
 ✅ All features tested"
 
-gh pr merge --merge --delete-branch
+PR_NUM=$(gh pr list --head release/$RELEASE_DATE-$RELEASE_DESC --json number --jq '.[0].number')
+gh pr merge $PR_NUM --merge --delete-branch
 ```
 
 **Expected Results**:
@@ -576,9 +590,10 @@ git checkout -b release/$RELEASE_DATE-$RELEASE_DESC
 git push -u origin release/$RELEASE_DATE-$RELEASE_DESC
 
 # Merge to release
-gh pr create --base release/$RELEASE_DATE-$RELEASE_DESC --head feature/api-v2-$TIMESTAMP \
-  --title "feat!: API v2" --body "Breaking API changes"
-gh pr merge --merge --delete-branch
+PR_OUTPUT=$(gh pr create --base release/$RELEASE_DATE-$RELEASE_DESC --head feature/api-v2-$TIMESTAMP \
+  --title "feat!: API v2" --body "Breaking API changes")
+PR_NUM=$(echo $PR_OUTPUT | grep -oE '[0-9]+$')
+gh pr merge $PR_NUM --merge --delete-branch
 ```
 
 ### Step 5.2: QA Testing on Pre-release
@@ -601,7 +616,7 @@ git push
 
 ```bash
 # Final merge to main
-gh pr create \
+PR_OUTPUT=$(gh pr create \
   --base main \
   --head release/$RELEASE_DATE-$RELEASE_DESC \
   --title "🚀 MAJOR RELEASE: API v2.0" \
@@ -610,9 +625,10 @@ gh pr create \
 - New auth required
 
 ## Migration Guide
-See RELEASE_NOTES.md"
+See RELEASE_NOTES.md")
 
-gh pr merge --merge --delete-branch
+PR_NUM=$(echo $PR_OUTPUT | grep -oE '[0-9]+$')
+gh pr merge $PR_NUM --merge --delete-branch
 
 # Verify major version
 git checkout main && git pull
@@ -912,4 +928,4 @@ This advanced branching strategy provides:
 
 ---
 
-*Version 5.1.0 - Updated with fixes and working configuration (Sept 12, 2025)*
+*Version 5.2.0 - Fixed PR merge commands to capture and use PR numbers (Jan 12, 2025)*
