@@ -1,10 +1,11 @@
-# Release Notes - 3.6.0-rc.150925
+# Release Notes - 3.7.0-rc.150925
 
 ## 📦 Pre-release: release/150925-multi-feature
 
 This is a release candidate for testing. Please verify all changes before promoting to production.
 
 ### 🎯 Release Highlights
+- chore(release): prepare pre-release 3.6.0-rc.150925 [skip ci]
 - Merge pull request #51 from ThilinaV98/feature/reports-202509151127
 - chore(release): prepare pre-release 3.5.0-rc.150925 [skip ci]
 - Merge pull request #50 from ThilinaV98/feature/notifications-202509151125
@@ -23,7 +24,7 @@ This is a release candidate for testing. Please verify all changes before promot
 - [ ] Documentation updated
 
 ### 📋 Deployment Notes
-- Pre-release version: 3.6.0-rc.150925
+- Pre-release version: 3.7.0-rc.150925
 - Target branch: main
 - Estimated production date: TBD
 
