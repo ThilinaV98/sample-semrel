@@ -1,3 +1,12 @@
+## [3.5.0](https://github.com/ThilinaV98/sample-semrel/compare/v3.4.0...v3.5.0) (2025-09-15)
+
+
+### ✨ Features
+
+* add admin dashboard ([838cbe3](https://github.com/ThilinaV98/sample-semrel/commit/838cbe3ab69b8a3677d2815a2b897967cd1ff821))
+* add reporting module ([ba5aab2](https://github.com/ThilinaV98/sample-semrel/commit/ba5aab2d87c4fcf3d47c02f9b2acb22a885f17fb))
+* implement push notifications ([e2fb612](https://github.com/ThilinaV98/sample-semrel/commit/e2fb6126a8c20357ec16cdd00b6dc8ad113c6539))
+
 ## [3.7.0-rc.150925] - 2025-09-15 (Pre-release)
 
 ### Release Candidate for release/150925-multi-feature

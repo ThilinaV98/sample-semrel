@@ -1,6 +1,6 @@
 {
   "name": "sample-semantic-release",
-  "version": "3.7.0-rc.150925",
+  "version": "3.5.0",
   "description": "Sample project demonstrating semantic versioning and branching strategy",
   "main": "src/index.js",
   "scripts": {
