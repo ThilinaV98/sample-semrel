@@ -1,3 +1,9 @@
+## [3.5.0-rc.150925] - 2025-09-15 (Pre-release)
+
+### Release Candidate for release/150925-multi-feature
+
+### 🐛 Bug Fixes
+* resolve GitHub Actions race condition in release preparation workflow ([9105201](https://github.com/ThilinaV98/sample-semrel/commit/9105201))
 ## [3.4.0-rc.150925] - 2025-09-15 (Pre-release)
 
 ### Release Candidate for release/150925-multi-feature
