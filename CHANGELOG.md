@@ -1,3 +1,7 @@
+## [3.5.0-rc.150925] - 2025-09-15 (Pre-release)
+
+### Release Candidate for release/150925-multi-feature
+
 ## [3.4.0](https://github.com/ThilinaV98/sample-semrel/compare/v3.3.0...v3.4.0) (2025-09-15)
 
 
