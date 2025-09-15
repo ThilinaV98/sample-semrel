@@ -1,3 +1,33 @@
+## [3.7.0-rc.150925] - 2025-09-15 (Pre-release)
+
+### Release Candidate for release/150925-multi-feature
+
+### 🐛 Bug Fixes
+* resolve GitHub Actions race condition in release preparation workflow ([9105201](https://github.com/ThilinaV98/sample-semrel/commit/9105201))
+### ✨ Features
+* add reporting module ([1b79acc](https://github.com/ThilinaV98/sample-semrel/commit/1b79acc))
+### ✨ Features
+* implement push notifications ([ee7cd3e](https://github.com/ThilinaV98/sample-semrel/commit/ee7cd3e))
+## [3.6.0-rc.150925] - 2025-09-15 (Pre-release)
+
+### Release Candidate for release/150925-multi-feature
+
+### 🐛 Bug Fixes
+* resolve GitHub Actions race condition in release preparation workflow ([9105201](https://github.com/ThilinaV98/sample-semrel/commit/9105201))
+### ✨ Features
+* add reporting module ([1b79acc](https://github.com/ThilinaV98/sample-semrel/commit/1b79acc))
+### ✨ Features
+* implement push notifications ([ee7cd3e](https://github.com/ThilinaV98/sample-semrel/commit/ee7cd3e))
+## [3.5.0-rc.150925] - 2025-09-15 (Pre-release)
+
+### Release Candidate for release/150925-multi-feature
+
+### 🐛 Bug Fixes
+* resolve GitHub Actions race condition in release preparation workflow ([9105201](https://github.com/ThilinaV98/sample-semrel/commit/9105201))
+## [3.4.0-rc.150925] - 2025-09-15 (Pre-release)
+
+### Release Candidate for release/150925-multi-feature
+
 ## [3.3.0](https://github.com/ThilinaV98/sample-semrel/compare/v3.2.2...v3.3.0) (2025-09-15)
 
 
