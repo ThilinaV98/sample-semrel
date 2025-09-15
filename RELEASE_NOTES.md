@@ -6,12 +6,10 @@ This is a release candidate for testing. Please verify all changes before promot
 
 ### 🎯 Release Highlights
 - chore(release): prepare pre-release 3.6.0-rc.150925 [skip ci]
-- Merge pull request #51 from ThilinaV98/feature/reports-202509151127
+- Merge pull request #55 from ThilinaV98/feature/reports-202509151218
+- Merge pull request #54 from ThilinaV98/feature/notifications-202509151217
 - chore(release): prepare pre-release 3.5.0-rc.150925 [skip ci]
-- Merge pull request #50 from ThilinaV98/feature/notifications-202509151125
-- fix: resolve GitHub Actions race condition in release preparation workflow
-- chore(release): prepare pre-release 3.4.0-rc.150925 [skip ci]
-- Merge pull request #49 from ThilinaV98/feature/dashboard-202509151124
+- Merge pull request #53 from ThilinaV98/feature/dashboard-202509151216
 - feat: add reporting module
 - feat: implement push notifications
 - feat: add admin dashboard
