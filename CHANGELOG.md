@@ -1,3 +1,9 @@
+## [3.6.0-rc.150925] - 2025-09-15 (Pre-release)
+
+### Release Candidate for release/150925-multi-feature
+
+### ✨ Features
+* implement push notifications ([e2fb612](https://github.com/ThilinaV98/sample-semrel/commit/e2fb612))
 ## [3.5.0-rc.150925] - 2025-09-15 (Pre-release)
 
 ### Release Candidate for release/150925-multi-feature
