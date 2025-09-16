@@ -251,7 +251,7 @@ class Logger {
   }
 
   /**
-   * Get current logger configuration
+   * Get current logger configuration details
    * @returns {Object} Logger configuration
    */
   getConfig() {
