@@ -49,15 +49,33 @@ class Analytics {
    */
   async sendEvent(payload) {
     try {
-      await fetch(this.apiEndpoint, {
+      const response = await fetch(this.apiEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload)
       });
+
+      // Check for HTTP errors
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
     } catch (error) {
       console.warn('Analytics tracking failed:', error.message);
+
+      // Store failed events for retry if possible
+      if (typeof localStorage !== 'undefined') {
+        try {
+          const failedEvents = JSON.parse(localStorage.getItem('analytics_failed') || '[]');
+          failedEvents.push({ ...payload, failedAt: Date.now() });
+
+          // Keep only last 10 failed events to prevent memory bloat
+          localStorage.setItem('analytics_failed', JSON.stringify(failedEvents.slice(-10)));
+        } catch (storageError) {
+          console.warn('Failed to store analytics event for retry:', storageError.message);
+        }
+      }
     }
   }
 }
