@@ -195,7 +195,8 @@ jobs:
           EOF
           
           echo "Created dynamic config, running semantic-release..."
-          npx semantic-release --extends ./.releaserc.dynamic.json
+          # Use --config instead of --extends to avoid merging with default config
+          npx semantic-release --config ./.releaserc.dynamic.json
 
       - name: 📝 Get Version and Store Information
         id: get_version
