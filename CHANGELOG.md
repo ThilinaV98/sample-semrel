@@ -1,3 +1,10 @@
+## [3.6.0](https://github.com/ThilinaV98/sample-semrel/compare/v3.5.1...v3.6.0) (2025-09-16)
+
+
+### ✨ Features
+
+* add test feature ([c915e09](https://github.com/ThilinaV98/sample-semrel/commit/c915e090a2138f0169364e1b356c357d756e0e2f))
+
 ## [3.5.1](https://github.com/ThilinaV98/sample-semrel/compare/v3.5.0...v3.5.1) (2025-09-16)
 
 
