@@ -555,96 +555,316 @@ gh pr merge $PR_NUM --merge --delete-branch
 
 ## Test Scenario 5: Pre-release to Production
 
-**Purpose**: Test full pre-release workflow
+**Purpose**: Test full pre-release to production workflow with the updated release management system
 
-### Step 5.1: Create and Test Pre-release
+⚠️ **IMPORTANT**: This scenario has been updated to work with the new unified release-management.yml workflow that triggers on PR events.
+
+### Step 5.1: Create Feature with Breaking Changes
 
 ```bash
-# Create feature
+# Create feature branch
 TIMESTAMP=$(date +%Y%m%d%H%M)
 git checkout main && git pull origin main
 git checkout -b feature/api-v2-$TIMESTAMP
 
 # Add breaking change
-cat > src/api-v2-$TIMESTAMP.js << EOF
-// API Version 2
-// Breaking changes included
+cat > src/api-v2-$TIMESTAMP.js << 'EOF'
+// API Version 2 - Breaking Changes
+// Created: $(date)
 export const apiV2 = {
   version: '2.0.0',
   endpoint: '/api/v2',
-  breaking: true
+  breaking: true,
+  changes: [
+    "New authentication required",
+    "Response format changed",
+    "API v1 endpoints deprecated"
+  ]
+};
+
+export const authenticate = (token) => {
+  // New auth system
+  return { valid: token?.length > 10, user: token };
 };
 EOF
 
 git add .
-git commit -m "feat!: implement API v2 with breaking changes
+git commit -m "feat: implement API v2 with breaking changes
 
 BREAKING CHANGE: API v1 endpoints deprecated
 - New authentication required
-- Response format changed"
+- Response format changed
+- Legacy endpoints removed"
 
 git push -u origin feature/api-v2-$TIMESTAMP
+echo "✅ Feature branch created: feature/api-v2-$TIMESTAMP"
+```
 
-# Create release branch
-RELEASE_DATE=$(date +%d%m%y)  # DDMMYY format
-RELEASE_DESC="api-v2"  # Description for API v2 release
+### Step 5.2: Create Release Branch and Trigger Pre-release
+
+```bash
+# Create release branch (DDMMYY-description format)
+RELEASE_DATE=$(date +%d%m%y)  # DDMMYY format (e.g., 160925)
+RELEASE_DESC="api-v2"
 git checkout main
 git checkout -b release/$RELEASE_DATE-$RELEASE_DESC
 git push -u origin release/$RELEASE_DATE-$RELEASE_DESC
+echo "✅ Release branch created: release/$RELEASE_DATE-$RELEASE_DESC"
 
-# Create and merge feature to release
-PR_OUTPUT=$(gh pr create --base release/$RELEASE_DATE-$RELEASE_DESC --head feature/api-v2-$TIMESTAMP \
-  --title "feat!: API v2" --body "Breaking API changes")
-PR_NUM=$(echo $PR_OUTPUT | grep -oE '[0-9]+$')
-echo "Created PR #$PR_NUM"
+# Create PR from feature to release (triggers pre-release job)
+PR_URL=$(gh pr create \
+  --base release/$RELEASE_DATE-$RELEASE_DESC \
+  --head feature/api-v2-$TIMESTAMP \
+  --title "feat: API v2 Implementation" \
+  --body "## Breaking Changes API v2
+
+This PR implements API v2 with breaking changes:
+
+### Changes
+- ✨ New authentication system
+- ⚠️ API v1 endpoints deprecated
+- 🔒 Enhanced security requirements
+- 📊 Improved response format
+
+### Testing
+- [ ] Unit tests pass
+- [ ] Integration tests pass
+- [ ] Breaking change documentation reviewed
+- [ ] Migration guide prepared
+
+### Impact
+🚨 **BREAKING CHANGE**: This will require client updates")
+
+# Extract PR number and merge
+PR_NUM=$(echo "$PR_URL" | grep -oE '[0-9]+$')
+echo "✅ Created PR #$PR_NUM: $PR_URL"
+
+# Merge PR to trigger pre-release workflow
 gh pr merge $PR_NUM --merge --delete-branch
+echo "✅ PR merged - pre-release workflow should be running"
 ```
 
-### Step 5.2: QA Testing on Pre-release
+### Step 5.3: Monitor Pre-release Creation
 
 ```bash
-# Pull release branch
-git checkout release/$RELEASE_DATE-$RELEASE_DESC && git pull
+# Wait for workflow to complete
+echo "⏳ Waiting for pre-release workflow to complete..."
+sleep 60
 
-# Check pre-release version (should be major bump)
+# Pull latest changes from release branch
+git checkout release/$RELEASE_DATE-$RELEASE_DESC
+git pull origin release/$RELEASE_DATE-$RELEASE_DESC
+
+# Check for pre-release version
+echo "📦 Checking pre-release version:"
 grep version package.json
-# Example: "version": "2.0.0-rc.20250112"
 
-# Simulate QA testing
-echo "// QA: Add deprecation warnings" >> src/api-v2-$TIMESTAMP.js
-git add . && git commit -m "fix: add API deprecation warnings"
-git push
+# Check if release.env was created (for Docker image tracking)
+if [ -f "release.env" ]; then
+  echo "✅ Release environment file created:"
+  cat release.env
+else
+  echo "⚠️  Release environment file not found"
+fi
+
+# Verify pre-release was created on GitHub
+echo "🔍 Checking GitHub pre-releases:"
+gh release list --limit 3 | grep -E "(Pre-release|Draft)"
 ```
 
-### Step 5.3: Production Deployment
+### Step 5.4: QA Testing Phase
 
 ```bash
-# Final merge to main
-# Create and merge final production release PR
-PR_OUTPUT=$(gh pr create \
+# Simulate QA testing and fixes
+echo "🧪 Simulating QA testing phase..."
+
+# Add QA improvements
+cat >> src/api-v2-$TIMESTAMP.js << 'EOF'
+
+// QA Improvements
+export const validateApiKey = (key) => {
+  if (!key || key.length < 10) {
+    throw new Error('API key must be at least 10 characters');
+  }
+  return true;
+};
+
+// Migration helper
+export const migrateFromV1 = (v1Response) => {
+  return {
+    data: v1Response.result,
+    meta: {
+      version: '2.0.0',
+      migrated: true,
+      timestamp: new Date().toISOString()
+    }
+  };
+};
+EOF
+
+git add .
+git commit -m "fix: add API key validation and migration helpers
+
+- Improve API key validation
+- Add migration utilities for v1 to v2 transition
+- Enhance error handling"
+
+git push origin release/$RELEASE_DATE-$RELEASE_DESC
+echo "✅ QA fixes applied to release branch"
+```
+
+### Step 5.5: Production Deployment
+
+```bash
+# Create PR from release to main (triggers production release)
+MAIN_PR_URL=$(gh pr create \
   --base main \
   --head release/$RELEASE_DATE-$RELEASE_DESC \
-  --title "🚀 MAJOR RELEASE: API v2.0" \
-  --body "## ⚠️ Breaking Changes
-- API v1 deprecated
-- New auth required
+  --title "🚀 MAJOR RELEASE: API v2.0 - Breaking Changes" \
+  --body "## 🎉 API v2.0 Production Release
 
-## Migration Guide
-See RELEASE_NOTES.md")
-PR_NUM=$(echo $PR_OUTPUT | grep -oE '[0-9]+$')
-echo "Created PR #$PR_NUM"
-gh pr merge $PR_NUM --merge --delete-branch
+### ⚠️ Breaking Changes
+- 🔒 **New Authentication**: API keys now required for all endpoints
+- 📊 **Response Format**: Changed from \`{result: data}\` to \`{data: data, meta: {}}\`
+- 🗑️ **Deprecated Endpoints**: All \`/api/v1/*\` endpoints removed
 
-# Verify major version
-git checkout main && git pull
-grep version package.json
-# Should show: "version": "2.0.0"
+### ✨ New Features
+- Enhanced security with improved API key validation
+- Migration utilities for smooth v1 to v2 transition
+- Better error handling and response consistency
+
+### 📋 QA Sign-off
+- ✅ All unit tests passing
+- ✅ Integration tests complete
+- ✅ Breaking change documentation verified
+- ✅ Migration guide provided
+- ✅ Security review completed
+
+### 📚 Migration Guide
+1. Update API endpoints from \`/api/v1/\` to \`/api/v2/\`
+2. Add API key authentication to all requests
+3. Update response parsing to handle new format
+4. Use migration utilities for data transformation
+
+### 🔗 Resources
+- [Migration Guide](./MIGRATION.md)
+- [API v2 Documentation](./docs/api-v2.md)
+- [Breaking Changes](./CHANGELOG.md)")
+
+MAIN_PR_NUM=$(echo "$MAIN_PR_URL" | grep -oE '[0-9]+$')
+echo "✅ Created production PR #$MAIN_PR_NUM: $MAIN_PR_URL"
+
+# Confirm before merging to production
+read -p "🚀 Ready to deploy to production? This will create a MAJOR version release (y/N): " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+  # Merge to main (triggers production release)
+  gh pr merge $MAIN_PR_NUM --merge --delete-branch
+  echo "✅ PR merged to main - production release triggered!"
+
+  # Wait for production workflow
+  echo "⏳ Waiting for production workflow to complete..."
+  sleep 60
+
+  # Verify production release
+  git checkout main && git pull origin main
+  echo "📦 Production version:"
+  grep version package.json
+
+  echo "🎉 Checking latest GitHub release:"
+  gh release list --limit 1
+else
+  echo "⏸️  Production deployment skipped"
+  echo "   PR #$MAIN_PR_NUM is ready when you are"
+fi
+```
+
+### Step 5.6: Verification and Cleanup
+
+```bash
+# Final verification
+echo "🔍 Final verification of Test Scenario 5:"
+echo "========================================="
+
+# Check version progression
+echo "📦 Version History:"
+git tag --sort=-version:refname | head -5
+
+# Verify release.env was cleaned up on main
+git checkout main && git pull origin main
+if [ ! -f "release.env" ]; then
+  echo "✅ Release environment file properly cleaned up"
+else
+  echo "⚠️  Release environment file still exists on main"
+fi
+
+# Check final GitHub releases
+echo "🎉 GitHub Releases:"
+gh release list --limit 3
+
+# Verify workflows completed successfully
+echo "⚙️  Recent Workflow Runs:"
+gh run list --limit 5 | head -6
+
+echo "========================================="
+echo "✅ Test Scenario 5 Complete!"
+echo "Features tested:"
+echo "  • Feature branch → Release branch PR (pre-release)"
+echo "  • Pre-release version creation with RC suffix"
+echo "  • QA testing phase on release branch"
+echo "  • Release branch → Main PR (production)"
+echo "  • Production release with stable version"
+echo "  • Docker image retagging (simulated)"
+echo "  • Release environment cleanup"
 ```
 
 **Expected Results**:
-- ✅ Pre-release: 2.0.0-rc.YYYYMMDD
-- ✅ Production: 2.0.0
-- ✅ Breaking change documented
+- ✅ Pre-release: X.Y.Z-rc.DDMMYY (where X.Y.Z has major bump due to breaking change)
+- ✅ Production: X.Y.Z (stable version without rc suffix)
+- ✅ GitHub pre-release created during QA phase
+- ✅ GitHub production release created after main merge
+- ✅ Breaking change properly documented in CHANGELOG
+- ✅ release.env file created and cleaned up
+- ✅ Docker images tagged for both pre-release and production
+- ✅ PR comments added explaining the release process
+
+### Troubleshooting Test Scenario 5
+
+#### Issue: Pre-release workflow doesn't trigger
+**Solution**:
+```bash
+# Check workflow file exists
+ls -la .github/workflows/release-management.yml
+
+# Verify PR was merged (not just closed)
+gh pr view $PR_NUM --json state,merged
+
+# Check workflow runs
+gh run list --workflow="🚀 Release Management" --limit 5
+```
+
+#### Issue: Version not updated after PR merge
+**Solution**:
+```bash
+# Wait longer for workflow to complete
+sleep 120
+
+# Check if workflow is still running
+gh run list --status in_progress
+
+# Check workflow logs for errors
+gh run view --log
+```
+
+#### Issue: Production release doesn't create stable version
+**Solution**:
+```bash
+# Ensure merge went to main (not closed as draft)
+git log --oneline -5
+
+# Check for workflow conditions
+grep -A10 "production-release:" .github/workflows/release-management.yml
+```
 
 ---
 
