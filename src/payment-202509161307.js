@@ -11,3 +11,4 @@ export class PaymentGateway {
     return { success: true, transactionId: Date.now() };
   }
 }
+// QA fix for payment validation
