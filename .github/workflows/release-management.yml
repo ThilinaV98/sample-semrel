@@ -1,32 +1,45 @@
-name: 📋 Release Preparation
+name: 🚀 Release Management
 
-# Trigger when feature branches are merged into release branches
+# Unified workflow for both pre-release and production release management
 on:
+  push:
+    branches:
+      - 'main'
+      - 'release/**'
   pull_request:
     branches:
       - 'release/**'
     types:
       - closed
-  push:
-    branches:
-      - 'release/**'
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type (for hotfixes)'
+        required: false
+        default: 'standard'
+        type: choice
+        options:
+          - standard
+          - hotfix
 
-# Prevent concurrent workflows on the same release branch
+# Prevent concurrent workflows on the same branch
 concurrency:
-  group: release-preparation-${{ github.event.pull_request.base.ref || github.ref_name }}
+  group: release-management-${{ github.event.pull_request.base.ref || github.ref_name }}
   cancel-in-progress: false
 
 permissions:
   contents: write
-  pull-requests: write
   issues: write
+  pull-requests: write
 
 jobs:
-  prepare-release:
-    name: 🚀 Prepare Release
+  pre-release:
+    name: 📋 Pre-release Preparation
     runs-on: ubuntu-latest
-    # Run if PR was merged OR if it's a push to release branch
-    if: github.event.pull_request.merged == true || github.event_name == 'push'
+    # Run only for release branches
+    if: |
+      (startsWith(github.ref, 'refs/heads/release/') && github.event_name == 'push') ||
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == true && startsWith(github.event.pull_request.base.ref, 'release/'))
 
     steps:
       - name: 📥 Checkout code
@@ -76,7 +89,7 @@ jobs:
 
           # Run semantic-release with custom config for release branches
           # This will analyze commits, determine version bump, and create pre-release
-          # The version will be like: v3.7.0-release-160925-payment-gateway.1
+          # The version will be like: v3.8.0-rc.1
           npx semantic-release --extends ./.releaserc.release.json
 
       - name: 📢 Create PR comment
@@ -120,3 +133,61 @@ jobs:
               issue_number: context.issue.number,
               body: comment
             });
+
+  production-release:
+    name: 🚀 Production Release
+    runs-on: ubuntu-latest
+    # Run only for main branch pushes or manual dispatch
+    if: |
+      (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+      github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🔍 Validate commit source
+        if: github.event_name == 'push'
+        run: |
+          # Check the commit message or branch that was merged
+          COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+          echo "Last commit message: $COMMIT_MESSAGE"
+
+          # Check if this was a merge from release/* or hotfix/*
+          if [[ "$COMMIT_MESSAGE" =~ "Merge pull request" ]]; then
+            if [[ ! "$COMMIT_MESSAGE" =~ "release/|hotfix/" ]]; then
+              echo "⚠️ Warning: Merge does not appear to be from release/* or hotfix/* branch"
+              echo "Continuing anyway as this might be a direct commit or different merge"
+            else
+              echo "✅ Valid merge from release/* or hotfix/* branch detected"
+            fi
+          fi
+
+      - name: 🔄 Semantic Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          # Remove pre-release suffix if present
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          if [[ "$CURRENT_VERSION" == *"-"* ]]; then
+            BASE_VERSION=$(echo $CURRENT_VERSION | sed 's/-.*$//')
+            echo "Converting pre-release $CURRENT_VERSION to stable release"
+            npm version $BASE_VERSION --no-git-tag-version
+          fi
+
+          # Run semantic-release for production
+          npx semantic-release

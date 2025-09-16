@@ -63,7 +63,12 @@
       "@semantic-release/github",
       {
         "assets": [],
-        "addReleases": false
+        "addReleases": "top",
+        "draft": false,
+        "prerelease": true,
+        "successComment": false,
+        "failTitle": false,
+        "failComment": false
       }
     ],
     [
