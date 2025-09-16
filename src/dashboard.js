@@ -210,15 +210,23 @@ class UserDashboard {
   }
 
   /**
-   * Refresh all widgets
+   * Refresh all widgets with intelligent batching
    */
   async refreshAllWidgets() {
-    const refreshPromises = Array.from(this.widgets.values()).map(widget =>
-      this.refreshWidget(widget)
-    );
+    const widgets = Array.from(this.widgets.values());
+    const highPriorityWidgets = widgets.filter(w => w.priority <= 2);
+    const lowPriorityWidgets = widgets.filter(w => w.priority > 2);
 
     try {
-      await Promise.all(refreshPromises);
+      // Refresh high-priority widgets first
+      await Promise.all(highPriorityWidgets.map(widget => this.refreshWidget(widget)));
+
+      // Batch low-priority widgets with delay to prevent overwhelming
+      if (lowPriorityWidgets.length > 0) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+        await Promise.all(lowPriorityWidgets.map(widget => this.refreshWidget(widget)));
+      }
+
       console.log('All widgets refreshed successfully');
     } catch (error) {
       console.error('Error refreshing widgets:', error);
