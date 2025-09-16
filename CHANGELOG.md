@@ -1,3 +1,15 @@
+## [4.1.0](https://github.com/ThilinaV98/sample-semrel/compare/v4.0.0...v4.1.0) (2025-09-16)
+
+
+### ✨ Features
+
+* implement payment gateway integration ([d7b46a4](https://github.com/ThilinaV98/sample-semrel/commit/d7b46a44b6c7abe9db5ed56844957c4d207b70a4))
+
+
+### 🐛 Bug Fixes
+
+* add payment amount validation ([b93134c](https://github.com/ThilinaV98/sample-semrel/commit/b93134c598a0eada19a789e1d44b7ab774b798fc))
+
 ## [4.0.0](https://github.com/ThilinaV98/sample-semrel/compare/v3.7.0...v4.0.0) (2025-09-16)
 
 
