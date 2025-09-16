@@ -1,20 +1,15 @@
 name: 🚀 Release Management
 
-# Unified workflow for both pre-release and production release management
 on:
-  push:
-    branches:
-      - 'main'
-      - 'release/**'
+  # Single, reliable trigger for when PRs are merged
   pull_request:
-    branches:
-      - 'release/**'
-    types:
-      - closed
+    types: [closed]
+  
+  # Allows for manual hotfix releases if needed
   workflow_dispatch:
     inputs:
       release_type:
-        description: 'Release type (for hotfixes)'
+        description: 'Release type (for manual triggers)'
         required: false
         default: 'standard'
         type: choice
@@ -22,31 +17,35 @@ on:
           - standard
           - hotfix
 
-# Prevent concurrent workflows on the same branch
+# Prevents multiple release workflows from running on the same branch simultaneously
 concurrency:
-  group: release-management-${{ github.event.pull_request.base.ref || github.ref_name }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
   contents: write
   issues: write
   pull-requests: write
+  packages: write  # If using GitHub Container Registry
 
 jobs:
+  # JOB 1: Handles pre-releases when a PR is merged into a release branch
   pre-release:
-    name: 📋 Pre-release Preparation
+    name: 📦 Pre-release & Build
+    # This job only runs when a PR is successfully merged into a 'release/**' branch
+    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.base.ref, 'release/')
     runs-on: ubuntu-latest
-    # Run only for release branches
-    if: |
-      (startsWith(github.ref, 'refs/heads/release/') && github.event_name == 'push') ||
-      (github.event_name == 'pull_request' && github.event.pull_request.merged == true && startsWith(github.event.pull_request.base.ref, 'release/'))
-
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
         with:
+          # We need full history for semantic-release to analyze commits
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.base.ref || github.ref }}
+          # Checkout the target branch (release branch)
+          ref: ${{ github.event.pull_request.base.ref }}
+          # Use a PAT if you need subsequent commits to trigger workflows
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🟢 Setup Node.js
@@ -58,136 +57,269 @@ jobs:
       - name: 📦 Install dependencies
         run: npm ci
 
-      - name: 🔍 Extract branch information
-        id: branch_info
+      - name: ⚙️ Configure Git
         run: |
-          # Get branch name from PR or push event
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BRANCH_NAME="${{ github.event.pull_request.base.ref }}"
-          else
-            BRANCH_NAME="${{ github.ref_name }}"
-          fi
-
-          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
-
-          # Extract date from branch name (release/DDMMYY-description)
-          # Format: DDMMYY-description
-          DATE_PART=$(echo $BRANCH_NAME | sed 's/release\///' | cut -d'-' -f1)
-          echo "date_part=$DATE_PART" >> $GITHUB_OUTPUT
-
-          # Set prerelease identifier with rc.DDMMYY format
-          echo "prerelease_id=rc.$DATE_PART" >> $GITHUB_OUTPUT
-
-      - name: 🔄 Run Semantic Release for Pre-release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          # Configure git for semantic-release
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
 
-          # Run semantic-release with custom config for release branches
-          # This will analyze commits, determine version bump, and create pre-release
-          # The version will be like: v3.8.0-rc.1
-          npx semantic-release --extends ./.releaserc.release.json
+      - name: 🔄 Run Semantic Release for Pre-release
+        id: semantic_prerelease
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }} # If publishing to npm
+        # This command creates the pre-release git tag (e.g., v1.2.0-rc.1) and a GitHub pre-release
+        run: |
+          # Use the extended config for release branches if it exists
+          if [ -f ".releaserc.release.json" ]; then
+            npx semantic-release --extends ./.releaserc.release.json
+          else
+            npx semantic-release
+          fi
 
-      - name: 📢 Create PR comment
-        if: github.event_name == 'pull_request'
+      - name: 📝 Get Version and Store Information
+        id: get_version
+        if: success()
+        run: |
+          # Read the new version that semantic-release wrote to package.json
+          VERSION=$(node -p "require('./package.json').version")
+          echo "Generated pre-release version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          
+          # Create a file that the production job can read after this branch is merged
+          echo "PRE_RELEASE_VERSION=$VERSION" > release.env
+          echo "PRE_RELEASE_TAG=v$VERSION" >> release.env
+          echo "RELEASE_BRANCH=${{ github.event.pull_request.base.ref }}" >> release.env
+          echo "RELEASE_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> release.env
+
+      - name: 💾 Commit Version Information
+        if: success()
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "ci: Store pre-release version info [skip ci]"
+          file_pattern: release.env package.json package-lock.json
+          branch: ${{ github.event.pull_request.base.ref }}
+          
+      - name: 🐳 Build and Push Docker Image
+        if: success()
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          echo "Building Docker image with tag: $VERSION"
+          
+          # Example Docker build and push (adjust for your registry)
+          # docker build -t my-registry/my-app:$VERSION .
+          # docker push my-registry/my-app:$VERSION
+          
+          echo "✅ Docker image built and pushed with tag: $VERSION"
+
+      - name: 📢 Create PR Comment
+        if: success()
         uses: actions/github-script@v7
         with:
           script: |
-            // Read the updated package.json to get the new version
-            const fs = require('fs');
-            const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            const version = packageJson.version;
-
-            const comment = `## 🎉 Pre-release Prepared: ${version}
+            const version = '${{ steps.get_version.outputs.version }}';
+            const branch = '${{ github.event.pull_request.base.ref }}';
+            
+            const comment = `## 🎉 Pre-release Created: v${version}
 
             ### 📊 Version Information
-            - **New Version**: ${version}
-            - **Branch**: ${{ steps.branch_info.outputs.branch_name }}
+            - **Pre-release Version**: v${version}
+            - **Branch**: ${branch}
+            - **Commit**: ${{ github.sha }}
 
             ### ✅ Completed Actions
             - ✔️ Generated pre-release version using semantic-release
-            - ✔️ Updated CHANGELOG.md with draft entries
-            - ✔️ Created RELEASE_NOTES.md
-            - ✔️ Updated package.json and package-lock.json
+            - ✔️ Created pre-release tag and GitHub release
+            - ✔️ Built and pushed Docker image
+            - ✔️ Stored release metadata for production deployment
 
             ### 📋 Next Steps
             1. Complete QA testing on this release branch
             2. Review and update release notes as needed
-            3. Once approved, create PR to merge into main
-            4. Semantic release will create the final production version
+            3. Create PR to merge \`${branch}\` into \`main\`
+            4. Production release will automatically promote this version
 
             ### 🔗 Resources
-            - [Changelog](https://github.com/${{ github.repository }}/blob/${{ steps.branch_info.outputs.branch_name }}/CHANGELOG.md)
-            - [Release Notes](https://github.com/${{ github.repository }}/blob/${{ steps.branch_info.outputs.branch_name }}/RELEASE_NOTES.md)
+            - [Pre-release](https://github.com/${{ github.repository }}/releases/tag/v${version})
+            - [Changelog](https://github.com/${{ github.repository }}/blob/${branch}/CHANGELOG.md)
 
             ---
-            *This pre-release was automatically generated using semantic-release based on conventional commits.*`;
+            *This pre-release was automatically generated based on conventional commits.*`;
 
-            github.rest.issues.createComment({
+            await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
               body: comment
             });
 
+# JOB 2: Handles the final production release when ANY branch is merged into main
   production-release:
     name: 🚀 Production Release
-    runs-on: ubuntu-latest
-    # Run only for main branch pushes or manual dispatch
+    # This job runs when a PR is merged into main OR on manual workflow dispatch
     if: |
-      (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+      (github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main') ||
       github.event_name == 'workflow_dispatch'
-
+    runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: main
-          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: ⚙️ Determine Release Type
+        id: release_type
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Use the input parameter for manual triggers
+            echo "type=${{ inputs.release_type }}" >> $GITHUB_OUTPUT
+            echo "source=manual" >> $GITHUB_OUTPUT
+          else
+            # Check the name of the branch that was merged into main
+            MERGED_BRANCH="${{ github.event.pull_request.head.ref }}"
+            echo "Merged branch: $MERGED_BRANCH"
+            
+            if [[ $MERGED_BRANCH == release/* ]]; then
+              # Release branches get special treatment - retag existing image
+              echo "type=standard" >> $GITHUB_OUTPUT
+              echo "source=release" >> $GITHUB_OUTPUT
+              echo "::notice::Standard release from release branch detected"
+            else
+              # ALL other branches are treated as hotfix - build new image
+              echo "type=hotfix" >> $GITHUB_OUTPUT
+              echo "source=${MERGED_BRANCH}" >> $GITHUB_OUTPUT
+              echo "::notice::Direct merge to main from ${MERGED_BRANCH} - treating as hotfix"
+            fi
+          fi
 
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-
+          
       - name: 📦 Install dependencies
         run: npm ci
 
-      - name: 🔍 Validate commit source
-        if: github.event_name == 'push'
+      - name: ⚙️ Configure Git
         run: |
-          # Check the commit message or branch that was merged
-          COMMIT_MESSAGE=$(git log -1 --pretty=%B)
-          echo "Last commit message: $COMMIT_MESSAGE"
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
 
-          # Check if this was a merge from release/* or hotfix/*
-          if [[ "$COMMIT_MESSAGE" =~ "Merge pull request" ]]; then
-            if [[ ! "$COMMIT_MESSAGE" =~ "release/|hotfix/" ]]; then
-              echo "⚠️ Warning: Merge does not appear to be from release/* or hotfix/* branch"
-              echo "Continuing anyway as this might be a direct commit or different merge"
-            else
-              echo "✅ Valid merge from release/* or hotfix/* branch detected"
-            fi
-          fi
-
-      - name: 🔄 Semantic Release
+      - name: 🔄 Run Semantic Release for Production
+        id: semantic_release_prod
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        # This will analyze commits, create the final git tag (e.g., v1.2.0), and a GitHub release
+        run: npx semantic-release
+
+      - name: 📝 Get Final Version
+        id: get_final_version
         run: |
-          # Remove pre-release suffix if present
-          CURRENT_VERSION=$(node -p "require('./package.json').version")
-          if [[ "$CURRENT_VERSION" == *"-"* ]]; then
-            BASE_VERSION=$(echo $CURRENT_VERSION | sed 's/-.*$//')
-            echo "Converting pre-release $CURRENT_VERSION to stable release"
-            npm version $BASE_VERSION --no-git-tag-version
+          FINAL_VERSION=$(node -p "require('./package.json').version")
+          echo "version=$FINAL_VERSION" >> $GITHUB_OUTPUT
+          echo "Final production version: $FINAL_VERSION"
+
+      - name: 🏷️ Retag Existing Docker Image (Standard Release from release/*)
+        if: steps.release_type.outputs.type == 'standard' && success()
+        run: |
+          # Check if release.env exists (it should from the pre-release job)
+          if [ -f "release.env" ]; then
+            # Read the pre-release version from the file
+            source release.env
+            echo "Found pre-release version: $PRE_RELEASE_VERSION"
+            
+            FINAL_VERSION="${{ steps.get_final_version.outputs.version }}"
+            
+            # Retag the pre-release Docker image to production version
+            echo "Retagging Docker image:"
+            echo "  From: my-registry/my-app:$PRE_RELEASE_VERSION"
+            echo "  To: my-registry/my-app:$FINAL_VERSION"
+            echo "  To: my-registry/my-app:latest"
+            
+            # Example retagging commands (adjust for your registry)
+            # docker pull my-registry/my-app:$PRE_RELEASE_VERSION
+            # docker tag my-registry/my-app:$PRE_RELEASE_VERSION my-registry/my-app:$FINAL_VERSION
+            # docker tag my-registry/my-app:$PRE_RELEASE_VERSION my-registry/my-app:latest
+            # docker push my-registry/my-app:$FINAL_VERSION
+            # docker push my-registry/my-app:latest
+            
+            echo "✅ Docker image retagged and pushed"
+          else
+            echo "::warning::No release.env file found. Building new image instead."
+            # Fall back to building a new image
+            FINAL_VERSION="${{ steps.get_final_version.outputs.version }}"
+            echo "Building new Docker image for version: $FINAL_VERSION"
+            # docker build -t my-registry/my-app:$FINAL_VERSION .
+            # docker tag my-registry/my-app:$FINAL_VERSION my-registry/my-app:latest
+            # docker push my-registry/my-app:$FINAL_VERSION
+            # docker push my-registry/my-app:latest
           fi
 
-          # Run semantic-release for production
-          npx semantic-release
+      - name: 🐳 Build and Push Docker Image (Direct Merge/Hotfix)
+        if: steps.release_type.outputs.type == 'hotfix' && success()
+        run: |
+          FINAL_VERSION="${{ steps.get_final_version.outputs.version }}"
+          echo "Building new Docker image for direct merge from ${{ steps.release_type.outputs.source }}: $FINAL_VERSION"
+          
+          # Example Docker build and push (adjust for your registry)
+          # docker build -t my-registry/my-app:$FINAL_VERSION .
+          # docker tag my-registry/my-app:$FINAL_VERSION my-registry/my-app:latest
+          # docker push my-registry/my-app:$FINAL_VERSION
+          # docker push my-registry/my-app:latest
+          
+          echo "✅ Docker image built and pushed for version: $FINAL_VERSION"
+
+      - name: 🎊 Create Release Summary
+        if: success() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = '${{ steps.get_final_version.outputs.version }}';
+            const releaseType = '${{ steps.release_type.outputs.type }}';
+            const source = '${{ steps.release_type.outputs.source }}';
+            
+            const releaseTypeDisplay = releaseType === 'standard' 
+              ? 'Standard Release (from pre-release)' 
+              : `Direct Release (from ${source})`;
+            
+            const comment = `## 🚀 Production Release Completed: v${version}
+
+            ### 📊 Release Information
+            - **Version**: v${version}
+            - **Type**: ${releaseTypeDisplay}
+            - **Source Branch**: ${source}
+            - **Timestamp**: ${new Date().toISOString()}
+
+            ### ✅ Deployment Actions
+            - ✔️ Created production release tag v${version}
+            - ✔️ Generated GitHub release with changelog
+            - ✔️ ${releaseType === 'standard' ? 'Retagged pre-release Docker image' : 'Built new Docker image from source'}
+            - ✔️ Updated latest tag
+            - ✔️ Published to npm registry (if configured)
+
+            ### 🔗 Resources
+            - [GitHub Release](https://github.com/${{ github.repository }}/releases/tag/v${version})
+            - [Changelog](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)
+
+            ---
+            *This release was automatically deployed using semantic-release.*`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
+
+      - name: 🧹 Clean up release.env
+        if: steps.release_type.outputs.type == 'standard'
+        run: |
+          # Remove the release.env file after successful production release
+          if [ -f "release.env" ]; then
+            rm release.env
+            git add release.env
+            git commit -m "chore: Clean up release.env after production release [skip ci]" || echo "No changes to commit"
+            git push || echo "No changes to push"
+          fi

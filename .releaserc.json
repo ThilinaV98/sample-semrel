@@ -1,6 +1,14 @@
 {
   "branches": [
-    "main"
+    "main",
+    {
+      "name": "release/**",
+      "prerelease": "rc"
+    },
+    {
+      "name": "hotfix/**",
+      "prerelease": "hotfix"
+    }
   ],
   "plugins": [
     [
@@ -27,7 +35,7 @@
         "presetConfig": {
           "types": [
             { "type": "feat", "section": "✨ Features" },
-            { "type": "fix", "section": "🐛 Bug Fixes" },
+            { "type": "fix", "section": "🐞 Bug Fixes" },
             { "type": "perf", "section": "⚡ Performance" },
             { "type": "refactor", "section": "♻️ Code Refactoring" }
           ]
