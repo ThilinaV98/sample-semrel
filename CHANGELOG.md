@@ -1,3 +1,10 @@
+## [3.5.1](https://github.com/ThilinaV98/sample-semrel/compare/v3.5.0...v3.5.1) (2025-09-16)
+
+
+### ♻️ Code Refactoring
+
+* replace bash script with semantic-release for pre-releases ([ce185a7](https://github.com/ThilinaV98/sample-semrel/commit/ce185a7ff0c98aa13fe5626fb8f2788c4233d686))
+
 ## [3.5.0](https://github.com/ThilinaV98/sample-semrel/compare/v3.4.0...v3.5.0) (2025-09-15)
 
 
