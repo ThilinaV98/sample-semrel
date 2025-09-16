@@ -1,3 +1,10 @@
+## [4.2.0](https://github.com/ThilinaV98/sample-semrel/compare/v4.1.0...v4.2.0) (2025-09-16)
+
+
+### ✨ Features
+
+* add workflow demo module ([dab8e76](https://github.com/ThilinaV98/sample-semrel/commit/dab8e7602839d6a65032e7593e63016bb65ba4cc))
+
 ## [4.1.0](https://github.com/ThilinaV98/sample-semrel/compare/v4.0.0...v4.1.0) (2025-09-16)
 
 
