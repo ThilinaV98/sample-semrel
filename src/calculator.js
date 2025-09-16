@@ -10,6 +10,7 @@ class Calculator {
   constructor() {
     this.history = [];
     this.maxHistorySize = 100;
+    this.precision = 10;
   }
 
   /**
