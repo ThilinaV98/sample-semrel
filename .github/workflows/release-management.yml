@@ -66,14 +66,13 @@ jobs:
         id: semantic_prerelease
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }} # If publishing to npm
         # This command creates the pre-release git tag (e.g., v1.2.0-rc.1) and a GitHub pre-release
         run: |
           # Use the extended config for release branches if it exists
           if [ -f ".releaserc.release.json" ]; then
-            npx semantic-release --extends ./.releaserc.release.json
+           npx semantic-release --ci --extends ./.releaserc.release.json
           else
-            npx semantic-release
+           npx semantic-release --ci
           fi
 
       - name: 📝 Get Version and Store Information
@@ -210,9 +209,8 @@ jobs:
         id: semantic_release_prod
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         # This will analyze commits, create the final git tag (e.g., v1.2.0), and a GitHub release
-        run: npx semantic-release
+        run: npx semantic-release --ci
 
       - name: 📝 Get Final Version
         id: get_final_version
