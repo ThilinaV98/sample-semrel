@@ -23,6 +23,26 @@
 
 ### ✨ Features
 
+* add analytics tracking module ([09a91be](https://github.com/ThilinaV98/sample-semrel/commit/09a91be8d91259d2e2b9c08c804f420ad99a276d))
+* implement payment gateway integration ([bbfa10f](https://github.com/ThilinaV98/sample-semrel/commit/bbfa10feadde671eeff48c263005c800e0a452d6))
+
+
+### 🐛 Bug Fixes
+
+* add payment amount validation ([76c10e6](https://github.com/ThilinaV98/sample-semrel/commit/76c10e6819ca51fec147fdc3389ab77eeb637f51))
+* handle negative zero edge case in division ([9acdf88](https://github.com/ThilinaV98/sample-semrel/commit/9acdf8842bc4ae05fb163a92bb86362f6f080356))
+* improve prerelease versioning to use clean rc.X format ([1d08539](https://github.com/ThilinaV98/sample-semrel/commit/1d08539b6fb91295f25bb27d41823deece5dab41))
+
+
+### ♻️ Code Refactoring
+
+* extract log formatting methods for better maintainability ([a93ff94](https://github.com/ThilinaV98/sample-semrel/commit/a93ff940665f75b816dafb1fea024a897ade3f41))
+
+## [3.7.0](https://github.com/ThilinaV98/sample-semrel/compare/v3.6.0...v3.7.0) (2025-09-16)
+
+
+### ✨ Features
+
 * implement payment gateway integration ([bbfa10f](https://github.com/ThilinaV98/sample-semrel/commit/bbfa10feadde671eeff48c263005c800e0a452d6))
 
 
