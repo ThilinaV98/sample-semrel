@@ -75,9 +75,11 @@ class Calculator {
       throw new Error('Division by zero is not allowed');
     }
 
+    // Fix: Handle edge case where result is -0
     const result = a / b;
-    this._addToHistory('divide', [a, b], result);
-    return result;
+    const cleanResult = Object.is(result, -0) ? 0 : result;
+    this._addToHistory('divide', [a, b], cleanResult);
+    return cleanResult;
   }
 
   /**
