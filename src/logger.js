@@ -275,11 +275,13 @@ function createRequestLogger(context = 'HTTP') {
   return (req, res, next) => {
     const start = Date.now();
 
-    res.on('finish', () => {
+    const onFinish = () => {
       const duration = Date.now() - start;
       logger.logRequest(req, res, duration);
-    });
+      res.removeListener('finish', onFinish);
+    };
 
+    res.on('finish', onFinish);
     next();
   };
 }
