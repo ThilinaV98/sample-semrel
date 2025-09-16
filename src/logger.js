@@ -78,39 +78,63 @@ class Logger {
     const color = this.colors[level] || '';
     const reset = this.colors.RESET;
 
-    // Format the log entry
-    const logEntry = {
+    // Create structured log entry
+    const logEntry = this._createLogEntry(timestamp, level, message, data);
+
+    // Console output with color
+    if (process.env.NODE_ENV !== 'test') {
+      this._outputToConsole(logEntry, color, reset);
+    }
+
+    // In production or structured logging environments,
+    // you might want to send logs to external services
+    this._sendToExternalLogger(logEntry);
+  }
+
+  /**
+   * Create a structured log entry
+   * @private
+   * @param {string} timestamp - Log timestamp
+   * @param {string} level - Log level
+   * @param {string} message - Log message
+   * @param {*} data - Additional data
+   * @returns {Object} Structured log entry
+   */
+  _createLogEntry(timestamp, level, message, data) {
+    return {
       timestamp,
       level,
       context: this.context,
       message,
       ...(data && { data }),
     };
+  }
 
-    // Console output with color
-    if (process.env.NODE_ENV !== 'test') {
-      const baseMessage = `${color}[${timestamp}] ${level.padEnd(5)} [${this.context}] ${message}${reset}`;
+  /**
+   * Output log entry to console with formatting
+   * @private
+   * @param {Object} logEntry - Log entry object
+   * @param {string} color - ANSI color code
+   * @param {string} reset - ANSI reset code
+   */
+  _outputToConsole(logEntry, color, reset) {
+    const baseMessage = `${color}[${logEntry.timestamp}] ${logEntry.level.padEnd(5)} [${logEntry.context}] ${logEntry.message}${reset}`;
 
-      if (data !== null && data !== undefined) {
+    if (logEntry.data !== null && logEntry.data !== undefined) {
+      // eslint-disable-next-line no-console
+      console.log(baseMessage);
+
+      if (typeof logEntry.data === 'object') {
         // eslint-disable-next-line no-console
-        console.log(baseMessage);
-
-        if (typeof data === 'object') {
-          // eslint-disable-next-line no-console
-          console.log(`${color}${JSON.stringify(data, null, 2)}${reset}`);
-        } else {
-          // eslint-disable-next-line no-console
-          console.log(`${color}${data}${reset}`);
-        }
+        console.log(`${color}${JSON.stringify(logEntry.data, null, 2)}${reset}`);
       } else {
         // eslint-disable-next-line no-console
-        console.log(baseMessage);
+        console.log(`${color}${logEntry.data}${reset}`);
       }
+    } else {
+      // eslint-disable-next-line no-console
+      console.log(baseMessage);
     }
-
-    // In production or structured logging environments,
-    // you might want to send logs to external services
-    this._sendToExternalLogger(logEntry);
   }
 
   /**
