@@ -112,12 +112,90 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Use the extended config for release branches if it exists
-          if [ -f ".releaserc.release.json" ]; then
-            npx semantic-release --extends ./.releaserc.release.json
-          else
-            npx semantic-release
-          fi
+          # Extract unique identifier from branch name
+          # e.g., release/171225-simple-updates -> rc-171225
+          BRANCH_NAME="${{ github.ref_name }}"
+          echo "Processing branch: $BRANCH_NAME"
+          
+          # Extract the date part (first 6 digits after 'release/')
+          BRANCH_SUFFIX=$(echo "$BRANCH_NAME" | sed 's/release\///' | grep -oE '^[0-9]{6}' || echo "default")
+          echo "Using prerelease suffix: rc-$BRANCH_SUFFIX"
+          
+          # Create a dynamic semantic-release config for this specific branch
+          cat > .releaserc.dynamic.json << EOF
+          {
+            "branches": [
+              {
+                "name": "$BRANCH_NAME",
+                "prerelease": "rc-$BRANCH_SUFFIX"
+              }
+            ],
+            "plugins": [
+              [
+                "@semantic-release/commit-analyzer",
+                {
+                  "preset": "conventionalcommits",
+                  "releaseRules": [
+                    { "type": "feat", "release": "minor" },
+                    { "type": "fix", "release": "patch" },
+                    { "type": "perf", "release": "patch" },
+                    { "breaking": true, "release": "major" },
+                    { "type": "docs", "release": false },
+                    { "type": "style", "release": false },
+                    { "type": "refactor", "release": "patch" },
+                    { "type": "test", "release": false },
+                    { "type": "chore", "release": false }
+                  ]
+                }
+              ],
+              [
+                "@semantic-release/release-notes-generator",
+                {
+                  "preset": "conventionalcommits",
+                  "presetConfig": {
+                    "types": [
+                      { "type": "feat", "section": "✨ Features" },
+                      { "type": "fix", "section": "🐞 Bug Fixes" },
+                      { "type": "perf", "section": "⚡ Performance" },
+                      { "type": "refactor", "section": "♻️ Code Refactoring" }
+                    ]
+                  }
+                }
+              ],
+              [
+                "@semantic-release/changelog",
+                {
+                  "changelogFile": "CHANGELOG.md"
+                }
+              ],
+              [
+                "@semantic-release/npm",
+                {
+                  "npmPublish": false
+                }
+              ],
+              [
+                "@semantic-release/github",
+                {
+                  "assets": [],
+                  "releasedLabels": ["released on @<%= nextRelease.channel %>"]
+                }
+              ],
+              [
+                "@semantic-release/git",
+                {
+                  "assets": ["package.json", "package-lock.json", "CHANGELOG.md"],
+                  "message": "chore(release): \${nextRelease.version} [skip ci]\n\n\${nextRelease.notes}"
+                }
+              ]
+            ],
+            "repositoryUrl": "https://github.com/${{ github.repository }}.git",
+            "tagFormat": "v\${version}"
+          }
+          EOF
+          
+          echo "Created dynamic config, running semantic-release..."
+          npx semantic-release --extends ./.releaserc.dynamic.json
 
       - name: 📝 Get Version and Store Information
         id: get_version

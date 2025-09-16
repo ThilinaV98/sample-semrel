@@ -1,15 +1,5 @@
 {
-  "branches": [
-    "main",
-    {
-      "name": "release/**",
-      "prerelease": "rc"
-    },
-    {
-      "name": "hotfix/**",
-      "prerelease": "hotfix"
-    }
-  ],
+  "branches": ["main"],
   "plugins": [
     [
       "@semantic-release/commit-analyzer",
@@ -46,6 +36,12 @@
       "@semantic-release/changelog",
       {
         "changelogFile": "CHANGELOG.md"
+      }
+    ],
+    [
+      "@semantic-release/npm",
+      {
+        "npmPublish": false
       }
     ],
     [
