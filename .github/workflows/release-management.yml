@@ -1,11 +1,18 @@
 name: 🚀 Release Management
 
 on:
-  # Single, reliable trigger for when PRs are merged
+  # Trigger on pushes to release branches (for pre-releases)
+  push:
+    branches:
+      - 'release/**'
+  
+  # Trigger when PRs are merged to main (for production releases)
   pull_request:
     types: [closed]
+    branches:
+      - main
   
-  # Allows for manual hotfix releases if needed
+  # Allows for manual releases if needed
   workflow_dispatch:
     inputs:
       release_type:
@@ -29,55 +36,92 @@ permissions:
   packages: write  # If using GitHub Container Registry
 
 jobs:
-  # JOB 1: Handles pre-releases when a PR is merged into a release branch
+  # JOB 1: Handles pre-releases when commits are pushed to release branches
   pre-release:
     name: 📦 Pre-release & Build
-    # This job only runs when a PR is successfully merged into a 'release/**' branch
-    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.base.ref, 'release/')
+    # This job runs when commits are pushed to release/** branches
+    if: startsWith(github.ref, 'refs/heads/release/')
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.get_version.outputs.version }}
+      has_changes: ${{ steps.check_changes.outputs.has_changes }}
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
         with:
           # We need full history for semantic-release to analyze commits
           fetch-depth: 0
-          # Checkout the target branch (release branch)
-          ref: ${{ github.event.pull_request.base.ref }}
-          # Use a PAT if you need subsequent commits to trigger workflows
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: 🔍 Check for new commits since last release
+        id: check_changes
+        run: |
+          # Get the latest tag on this branch (if any)
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          
+          if [ -z "$LATEST_TAG" ]; then
+            # No tags exist, check if there are any commits different from main
+            MAIN_COMMIT=$(git rev-parse origin/main 2>/dev/null || echo "")
+            CURRENT_COMMIT=$(git rev-parse HEAD)
+            
+            if [ "$MAIN_COMMIT" = "$CURRENT_COMMIT" ]; then
+              echo "No new commits since branching from main"
+              echo "has_changes=false" >> $GITHUB_OUTPUT
+            else
+              echo "New commits found since branching"
+              echo "has_changes=true" >> $GITHUB_OUTPUT
+            fi
+          else
+            # Check if there are new commits since the last tag
+            NEW_COMMITS=$(git rev-list $LATEST_TAG..HEAD --count)
+            if [ "$NEW_COMMITS" -gt 0 ]; then
+              echo "Found $NEW_COMMITS new commits since $LATEST_TAG"
+              echo "has_changes=true" >> $GITHUB_OUTPUT
+            else
+              echo "No new commits since $LATEST_TAG"
+              echo "has_changes=false" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: ⏭️ Skip if no changes
+        if: steps.check_changes.outputs.has_changes == 'false'
+        run: |
+          echo "::notice::No new commits found. Skipping pre-release creation."
+          exit 0
+
       - name: 🟢 Setup Node.js
+        if: steps.check_changes.outputs.has_changes == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
       - name: 📦 Install dependencies
+        if: steps.check_changes.outputs.has_changes == 'true'
         run: npm ci
 
       - name: ⚙️ Configure Git
+        if: steps.check_changes.outputs.has_changes == 'true'
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
 
       - name: 🔄 Run Semantic Release for Pre-release
         id: semantic_prerelease
+        if: steps.check_changes.outputs.has_changes == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # This command creates the pre-release git tag (e.g., v1.2.0-rc.1) and a GitHub pre-release
         run: |
           # Use the extended config for release branches if it exists
           if [ -f ".releaserc.release.json" ]; then
-           npx semantic-release --ci --extends ./.releaserc.release.json
+            npx semantic-release --extends ./.releaserc.release.json
           else
-           npx semantic-release --ci
+            npx semantic-release
           fi
 
       - name: 📝 Get Version and Store Information
         id: get_version
-        if: success()
+        if: steps.check_changes.outputs.has_changes == 'true' && success()
         run: |
           # Read the new version that semantic-release wrote to package.json
           VERSION=$(node -p "require('./package.json').version")
@@ -87,19 +131,19 @@ jobs:
           # Create a file that the production job can read after this branch is merged
           echo "PRE_RELEASE_VERSION=$VERSION" > release.env
           echo "PRE_RELEASE_TAG=v$VERSION" >> release.env
-          echo "RELEASE_BRANCH=${{ github.event.pull_request.base.ref }}" >> release.env
+          echo "RELEASE_BRANCH=${{ github.ref_name }}" >> release.env
           echo "RELEASE_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> release.env
 
       - name: 💾 Commit Version Information
-        if: success()
+        if: steps.check_changes.outputs.has_changes == 'true' && success()
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "ci: Store pre-release version info [skip ci]"
-          file_pattern: release.env package.json package-lock.json
-          branch: ${{ github.event.pull_request.base.ref }}
+          file_pattern: release.env package.json package-lock.json CHANGELOG.md
+          branch: ${{ github.ref_name }}
           
       - name: 🐳 Build and Push Docker Image
-        if: success()
+        if: steps.check_changes.outputs.has_changes == 'true' && success()
         run: |
           VERSION="${{ steps.get_version.outputs.version }}"
           echo "Building Docker image with tag: $VERSION"
@@ -110,48 +154,19 @@ jobs:
           
           echo "✅ Docker image built and pushed with tag: $VERSION"
 
-      - name: 📢 Create PR Comment
-        if: success()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const version = '${{ steps.get_version.outputs.version }}';
-            const branch = '${{ github.event.pull_request.base.ref }}';
-            
-            const comment = `## 🎉 Pre-release Created: v${version}
+      - name: 📊 Summary
+        if: always()
+        run: |
+          if [ "${{ steps.check_changes.outputs.has_changes }}" = "true" ]; then
+            echo "### 🎉 Pre-release Created" >> $GITHUB_STEP_SUMMARY
+            echo "**Version**: ${{ steps.get_version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ⏭️ Pre-release Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "No new commits found on branch ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          fi
 
-            ### 📊 Version Information
-            - **Pre-release Version**: v${version}
-            - **Branch**: ${branch}
-            - **Commit**: ${{ github.sha }}
-
-            ### ✅ Completed Actions
-            - ✔️ Generated pre-release version using semantic-release
-            - ✔️ Created pre-release tag and GitHub release
-            - ✔️ Built and pushed Docker image
-            - ✔️ Stored release metadata for production deployment
-
-            ### 📋 Next Steps
-            1. Complete QA testing on this release branch
-            2. Review and update release notes as needed
-            3. Create PR to merge \`${branch}\` into \`main\`
-            4. Production release will automatically promote this version
-
-            ### 🔗 Resources
-            - [Pre-release](https://github.com/${{ github.repository }}/releases/tag/v${version})
-            - [Changelog](https://github.com/${{ github.repository }}/blob/${branch}/CHANGELOG.md)
-
-            ---
-            *This pre-release was automatically generated based on conventional commits.*`;
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: comment
-            });
-
-# JOB 2: Handles the final production release when ANY branch is merged into main
+  # JOB 2: Handles the final production release when ANY branch is merged into main
   production-release:
     name: 🚀 Production Release
     # This job runs when a PR is merged into main OR on manual workflow dispatch
@@ -209,8 +224,11 @@ jobs:
         id: semantic_release_prod
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # This will analyze commits, create the final git tag (e.g., v1.2.0), and a GitHub release
-        run: npx semantic-release --ci
+        run: |
+          # Since we're triggered by a PR merge, we need to bypass PR detection
+          # We do this by temporarily changing the event name environment variable
+          export GITHUB_EVENT_NAME=push
+          npx semantic-release
 
       - name: 📝 Get Final Version
         id: get_final_version
@@ -295,7 +313,6 @@ jobs:
             - ✔️ Generated GitHub release with changelog
             - ✔️ ${releaseType === 'standard' ? 'Retagged pre-release Docker image' : 'Built new Docker image from source'}
             - ✔️ Updated latest tag
-            - ✔️ Published to npm registry (if configured)
 
             ### 🔗 Resources
             - [GitHub Release](https://github.com/${{ github.repository }}/releases/tag/v${version})
