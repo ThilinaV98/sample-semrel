@@ -69,8 +69,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          SEMANTIC_RELEASE_BRANCH: ${{ steps.branch_info.outputs.branch_name }}
-          PRERELEASE_ID: ${{ steps.branch_info.outputs.prerelease_id }}
         run: |
           # Configure git for semantic-release
           git config --local user.email "action@github.com"
@@ -78,7 +76,8 @@ jobs:
 
           # Run semantic-release with custom config for release branches
           # This will analyze commits, determine version bump, and create pre-release
-          npx semantic-release --extends ./.releaserc.release.json --branches ${{ steps.branch_info.outputs.branch_name }}
+          # The version will be like: v3.7.0-release-160925-payment-gateway.1
+          npx semantic-release --extends ./.releaserc.release.json
 
       - name: 📢 Create PR comment
         if: github.event_name == 'pull_request'

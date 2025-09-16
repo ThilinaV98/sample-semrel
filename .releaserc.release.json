@@ -2,8 +2,7 @@
   "branches": [
     {
       "name": "release/+([0-9])?(-)*",
-      "prerelease": "${name.replace(/^release\\//g, '').replace(/-.+/, '')}",
-      "channel": "rc"
+      "prerelease": "rc"
     }
   ],
   "plugins": [
@@ -58,6 +57,13 @@
       "@semantic-release/npm",
       {
         "npmPublish": false
+      }
+    ],
+    [
+      "@semantic-release/github",
+      {
+        "assets": [],
+        "addReleases": false
       }
     ],
     [
