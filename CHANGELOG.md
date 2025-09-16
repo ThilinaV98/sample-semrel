@@ -1,3 +1,15 @@
+## [4.0.0](https://github.com/ThilinaV98/sample-semrel/compare/v3.7.0...v4.0.0) (2025-09-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* Workflow files consolidated from 2 separate files to 1 unified file.
+This improves maintainability and provides better release visibility.
+
+### ✨ Features
+
+* improve release workflow with unified management and pre-release tagging ([3498f00](https://github.com/ThilinaV98/sample-semrel/commit/3498f009beec622f199618f73b8228401bbddb37))
+
 ## [3.7.0](https://github.com/ThilinaV98/sample-semrel/compare/v3.6.0...v3.7.0) (2025-09-16)
 
 
