@@ -1,0 +1,73 @@
+{
+  "branches": [
+    {
+      "name": "release/+([0-9])?(-)*",
+      "prerelease": "${name.replace(/^release\\//g, '').replace(/-.+/, '')}",
+      "channel": "rc"
+    }
+  ],
+  "plugins": [
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "conventionalcommits",
+        "releaseRules": [
+          { "type": "feat", "release": "minor" },
+          { "type": "fix", "release": "patch" },
+          { "type": "perf", "release": "patch" },
+          { "breaking": true, "release": "major" },
+          { "type": "docs", "release": false },
+          { "type": "style", "release": false },
+          { "type": "refactor", "release": "patch" },
+          { "type": "test", "release": false },
+          { "type": "chore", "release": false }
+        ]
+      }
+    ],
+    [
+      "@semantic-release/release-notes-generator",
+      {
+        "preset": "conventionalcommits",
+        "presetConfig": {
+          "types": [
+            { "type": "feat", "section": "✨ Features" },
+            { "type": "fix", "section": "🐛 Bug Fixes" },
+            { "type": "perf", "section": "⚡ Performance" },
+            { "type": "refactor", "section": "♻️ Code Refactoring" }
+          ]
+        },
+        "writerOpts": {
+          "headerPartial": "## {{#if @root.linkCompare}}[{{version}}]({{@root.linkCompare}}){{else}}{{version}}{{/if}} - {{date}} (Pre-release)\n\n### Release Candidate for {{@root.host}}/{{@root.owner}}/{{@root.repository}}/tree/{{@root.branch}}"
+        }
+      }
+    ],
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "CHANGELOG.md",
+        "changelogTitle": "# Changelog\n\nAll notable changes to this project will be documented in this file."
+      }
+    ],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "echo '# Release Notes - ${nextRelease.version}\n\n## 📦 Pre-release: ${branch.name}\n\nThis is a release candidate for testing. Please verify all changes before promoting to production.\n\n### 🎯 Release Highlights\n\n${nextRelease.notes}\n\n### 🧪 Testing Checklist\n- [ ] Unit tests passing\n- [ ] Integration tests passing\n- [ ] Manual QA completed\n- [ ] Performance benchmarks acceptable\n- [ ] Security scan completed\n- [ ] Documentation updated\n\n### 📋 Deployment Notes\n- Pre-release version: ${nextRelease.version}\n- Target branch: main\n- Estimated production date: TBD\n\n### ⚠️ Known Issues\n- None identified\n' > RELEASE_NOTES.md"
+      }
+    ],
+    [
+      "@semantic-release/npm",
+      {
+        "npmPublish": false
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["package.json", "package-lock.json", "CHANGELOG.md", "RELEASE_NOTES.md"],
+        "message": "chore(release): prepare pre-release ${nextRelease.version} [skip ci]\n\n- Updated version to ${nextRelease.version}\n- Generated changelog draft\n- Created release notes draft"
+      }
+    ]
+  ],
+  "repositoryUrl": "https://github.com/ThilinaV98/sample-semrel.git",
+  "tagFormat": "v${version}"
+}
