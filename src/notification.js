@@ -216,18 +216,44 @@ class NotificationSystem {
   }
 
   /**
-   * Start queue processor
+   * Start queue processor with batching optimization
    */
   startProcessor() {
     if (this.isProcessing) return;
 
     this.isProcessing = true;
-    setInterval(() => {
-      if (this.queue.length > 0) {
-        const notification = this.queue.shift();
-        this.processNotification(notification);
-      }
+    this.processorInterval = setInterval(() => {
+      this.processBatch();
     }, 1000);
+  }
+
+  /**
+   * Process notifications in batches for better performance
+   */
+  async processBatch() {
+    if (this.queue.length === 0) return;
+
+    // Process up to 5 notifications in parallel for better throughput
+    const batchSize = Math.min(5, this.queue.length);
+    const batch = this.queue.splice(0, batchSize);
+
+    // Group by priority for optimized processing
+    const criticalNotifications = batch.filter(n => n.priority === 'critical');
+    const normalNotifications = batch.filter(n => n.priority !== 'critical');
+
+    try {
+      // Process critical notifications first
+      if (criticalNotifications.length > 0) {
+        await Promise.all(criticalNotifications.map(n => this.processNotification(n)));
+      }
+
+      // Process normal notifications in parallel
+      if (normalNotifications.length > 0) {
+        await Promise.all(normalNotifications.map(n => this.processNotification(n)));
+      }
+    } catch (error) {
+      console.error('Batch processing error:', error);
+    }
   }
 
   /**
@@ -275,6 +301,10 @@ class NotificationSystem {
    */
   shutdown() {
     this.isProcessing = false;
+    if (this.processorInterval) {
+      clearInterval(this.processorInterval);
+      this.processorInterval = null;
+    }
     this.queue.length = 0;
     this.subscribers.clear();
     console.log('Notification system shutdown');
