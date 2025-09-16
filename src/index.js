@@ -26,6 +26,7 @@ const packageInfo = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 3000;
+const API_VERSION = 'v1.0.0';
 
 // Middleware
 app.use(express.json());
