@@ -32,6 +32,9 @@
   },
   "homepage": "https://github.com/username/sample-semantic-release#readme",
   "devDependencies": {
+    "conventional-changelog-cli": "^4.1.0",
+    "conventional-recommended-bump": "^9.0.0",
+    "semver": "^7.5.4",
     "@commitlint/cli": "^18.4.3",
     "@commitlint/config-conventional": "^18.4.3",
     "@semantic-release/changelog": "^6.0.3",

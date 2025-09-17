@@ -1,0 +1,99 @@
+name: 'Version Bump'
+description: 'Calculates and applies semantic version bumps'
+inputs:
+  current-version:
+    description: 'Current semantic version'
+    required: true
+  bump-type:
+    description: 'Type of version bump (major, minor, patch, auto)'
+    required: false
+    default: 'auto'
+  pr-labels:
+    description: 'JSON array of PR labels'
+    required: false
+    default: '[]'
+  pr-title:
+    description: 'PR title for conventional commit parsing'
+    required: false
+    default: ''
+outputs:
+  new-version:
+    description: 'New calculated version'
+    value: ${{ steps.calculate.outputs.new-version }}
+  bump-type:
+    description: 'Actual bump type applied'
+    value: ${{ steps.calculate.outputs.bump-type }}
+  is-breaking:
+    description: 'Whether this is a breaking change'
+    value: ${{ steps.calculate.outputs.is-breaking }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install semver
+      shell: bash
+      run: |
+        npm install -g semver@7.5.4
+
+    - name: Determine bump type
+      id: determine
+      shell: bash
+      run: |
+        BUMP_TYPE="${{ inputs.bump-type }}"
+        
+        if [ "$BUMP_TYPE" = "auto" ]; then
+          # Check labels first
+          LABELS='${{ inputs.pr-labels }}'
+          TITLE='${{ inputs.pr-title }}'
+        
+          if echo "$LABELS" | grep -q "bump:major\|breaking"; then
+            BUMP_TYPE="major"
+          elif echo "$LABELS" | grep -q "bump:minor\|feature"; then
+            BUMP_TYPE="minor"
+          elif echo "$LABELS" | grep -q "bump:patch\|fix"; then
+            BUMP_TYPE="patch"
+          else
+            # Parse conventional commit from title
+            if echo "$TITLE" | grep -qE '^(feat|feature)(\(.+\))?!:'; then
+              BUMP_TYPE="major"  # feat! indicates breaking
+            elif echo "$TITLE" | grep -qE '^(feat|feature)(\(.+\))?:'; then
+              BUMP_TYPE="minor"
+            elif echo "$TITLE" | grep -qE '^(fix|bugfix)(\(.+\))?:'; then
+              BUMP_TYPE="patch"
+            elif echo "$TITLE" | grep -qE '^(chore|docs|style|refactor|perf|test|build|ci)(\(.+\))?:'; then
+              BUMP_TYPE="patch"
+            else
+              BUMP_TYPE="patch"  # Default
+            fi
+          fi
+        fi
+        
+        echo "DETERMINED_BUMP_TYPE=$BUMP_TYPE" >> $GITHUB_ENV
+        echo "📊 Determined bump type: $BUMP_TYPE"
+
+    - name: Calculate new version
+      id: calculate
+      shell: bash
+      run: |
+        CURRENT="${{ inputs.current-version }}"
+        BUMP_TYPE="${DETERMINED_BUMP_TYPE}"
+        
+        # Calculate new version
+        NEW_VERSION=$(npx semver "$CURRENT" -i "$BUMP_TYPE")
+        
+        # Determine if breaking
+        IS_BREAKING="false"
+        if [ "$BUMP_TYPE" = "major" ]; then
+          IS_BREAKING="true"
+        fi
+        
+        echo "new-version=$NEW_VERSION" >> $GITHUB_OUTPUT
+        echo "bump-type=$BUMP_TYPE" >> $GITHUB_OUTPUT
+        echo "is-breaking=$IS_BREAKING" >> $GITHUB_OUTPUT
+        
+        echo "✅ Version bump: $CURRENT → $NEW_VERSION ($BUMP_TYPE)"

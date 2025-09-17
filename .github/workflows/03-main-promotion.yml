@@ -1,0 +1,318 @@
+name: 🚢 Promote Release to Production
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+permissions:
+  contents: write
+  packages: write
+  deployments: write
+
+jobs:
+  promote-release:
+    if: |
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'release/')
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout main with full history
+      - name: 📥 Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Get release.json from the release branch
+      - name: 📖 Fetch release.json from release branch
+        run: |
+          git fetch origin ${{ github.event.pull_request.head.ref }}
+          git checkout origin/${{ github.event.pull_request.head.ref }} -- release.json
+          
+          # Verify file exists
+          if [ ! -f release.json ]; then
+            echo "❌ release.json not found in release branch!"
+            exit 1
+          fi
+
+      # Setup Node.js
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Read release information
+      - name: 📊 Read release information
+        id: release-info
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const releaseJson = JSON.parse(fs.readFileSync('release.json', 'utf8'));
+            
+            // Get the final version
+            const finalVersion = releaseJson.candidateVersion;
+            
+            // Get the last RC build
+            const lastRC = releaseJson.rcBuilds[releaseJson.rcBuilds.length - 1];
+            
+            core.setOutput('final_version', finalVersion);
+            core.setOutput('base_version', releaseJson.baseVersion);
+            core.setOutput('last_rc_version', lastRC ? lastRC.version : 'none');
+            core.setOutput('rc_count', releaseJson.rcBuilds.length);
+            core.setOutput('pr_count', releaseJson.mergedPRs.length);
+            
+            // Extract changelog sections
+            core.setOutput('feature_count', releaseJson.changelog.features.length);
+            core.setOutput('fix_count', releaseJson.changelog.fixes.length);
+            core.setOutput('breaking_count', releaseJson.changelog.breaking.length);
+            
+            console.log(`Final version: ${finalVersion}`);
+            console.log(`RC builds: ${releaseJson.rcBuilds.length}`);
+            console.log(`PRs merged: ${releaseJson.mergedPRs.length}`);
+            
+            return releaseJson;
+
+      # Validate version is higher than current
+      - name: ✅ Validate version bump
+        run: |
+          CURRENT_VERSION=$(jq -r '.version' package.json)
+          NEW_VERSION="${{ steps.release-info.outputs.final_version }}"
+          
+          if [ "$(npx semver ${NEW_VERSION} -r ">${CURRENT_VERSION}")" != "${NEW_VERSION}" ]; then
+            echo "❌ New version ${NEW_VERSION} is not greater than current ${CURRENT_VERSION}"
+            exit 1
+          fi
+          
+          echo "✅ Version bump validated: ${CURRENT_VERSION} → ${NEW_VERSION}"
+
+      # Update package.json with new version
+      - name: 📦 Update package.json
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            
+            packageJson.version = '${{ steps.release-info.outputs.final_version }}';
+            
+            fs.writeFileSync('package.json', JSON.stringify(packageJson, null, 2) + '\n');
+            
+            console.log(`Updated package.json to version ${packageJson.version}`);
+
+      # Generate comprehensive changelog
+      - name: 📋 Generate final changelog
+        id: changelog
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const releaseJson = JSON.parse(fs.readFileSync('release.json', 'utf8'));
+            
+            let changelog = `# Release v${releaseJson.candidateVersion}\n\n`;
+            changelog += `> Released on ${new Date().toLocaleDateString()}\n\n`;
+            
+            // Add summary
+            changelog += `## 📊 Summary\n`;
+            changelog += `- **Base Version**: v${releaseJson.baseVersion}\n`;
+            changelog += `- **RC Builds**: ${releaseJson.rcBuilds.length}\n`;
+            changelog += `- **PRs Merged**: ${releaseJson.mergedPRs.length}\n\n`;
+            
+            // Breaking changes
+            if (releaseJson.changelog.breaking.length > 0) {
+              changelog += `## ⚠️ Breaking Changes\n`;
+              releaseJson.changelog.breaking.forEach(item => {
+                changelog += `- ${item.title} (#${item.pr}) @${item.author}\n`;
+              });
+              changelog += `\n`;
+            }
+            
+            // Features
+            if (releaseJson.changelog.features.length > 0) {
+              changelog += `## 🚀 New Features\n`;
+              releaseJson.changelog.features.forEach(item => {
+                changelog += `- ${item.title} (#${item.pr}) @${item.author}\n`;
+              });
+              changelog += `\n`;
+            }
+            
+            // Fixes
+            if (releaseJson.changelog.fixes.length > 0) {
+              changelog += `## 🐛 Bug Fixes\n`;
+              releaseJson.changelog.fixes.forEach(item => {
+                changelog += `- ${item.title} (#${item.pr}) @${item.author}\n`;
+              });
+              changelog += `\n`;
+            }
+            
+            // Other changes
+            if (releaseJson.changelog.other.length > 0) {
+              changelog += `## 📝 Other Changes\n`;
+              releaseJson.changelog.other.forEach(item => {
+                changelog += `- ${item.title} (#${item.pr}) @${item.author}\n`;
+              });
+              changelog += `\n`;
+            }
+            
+            // Contributors
+            const contributors = new Set();
+            [...releaseJson.changelog.features, 
+             ...releaseJson.changelog.fixes, 
+             ...releaseJson.changelog.breaking,
+             ...releaseJson.changelog.other].forEach(item => {
+              contributors.add(item.author);
+            });
+            
+            if (contributors.size > 0) {
+              changelog += `## 👥 Contributors\n`;
+              changelog += Array.from(contributors).map(c => `@${c}`).join(', ') + '\n\n';
+            }
+            
+            // Docker information
+            changelog += `## 🐳 Docker Information\n`;
+            changelog += `- **Production Tag**: v${releaseJson.candidateVersion}\n`;
+            if (releaseJson.rcBuilds.length > 0) {
+              const lastRC = releaseJson.rcBuilds[releaseJson.rcBuilds.length - 1];
+              changelog += `- **Promoted From**: ${lastRC.version}\n`;
+            }
+            
+            fs.writeFileSync('CHANGELOG_RELEASE.md', changelog);
+            core.setOutput('changelog_path', 'CHANGELOG_RELEASE.md');
+            
+            return changelog;
+
+      # Mock Docker retag operations (NO REBUILD)
+      - name: 🐳 Mock Docker Retag & Push
+        id: docker-retag
+        run: |
+          FINAL_VERSION="v${{ steps.release-info.outputs.final_version }}"
+          LAST_RC="${{ steps.release-info.outputs.last_rc_version }}"
+          
+          echo "===================================="
+          echo "🐳 DOCKER RETAG SIMULATION (NO REBUILD)"
+          echo "===================================="
+          echo ""
+          echo "SOURCE: Production image from tested RC"
+          echo "RC Version: ${LAST_RC}"
+          echo ""
+          echo "Would execute:"
+          echo "  1. docker pull ${ECR_REGISTRY}/myapp:${LAST_RC}"
+          echo "  2. docker tag ${ECR_REGISTRY}/myapp:${LAST_RC} ${ECR_REGISTRY}/myapp:${FINAL_VERSION}"
+          echo "  3. docker tag ${ECR_REGISTRY}/myapp:${LAST_RC} ${ECR_REGISTRY}/myapp:latest"
+          echo "  4. docker tag ${ECR_REGISTRY}/myapp:${LAST_RC} ${ECR_REGISTRY}/myapp:stable"
+          echo ""
+          echo "===================================="
+          echo "📤 ECR PUSH SIMULATION"
+          echo "===================================="
+          echo ""
+          echo "Would push tags (image unchanged):"
+          echo "  - docker push ${ECR_REGISTRY}/myapp:${FINAL_VERSION}"
+          echo "  - docker push ${ECR_REGISTRY}/myapp:latest"
+          echo "  - docker push ${ECR_REGISTRY}/myapp:stable"
+          echo ""
+          echo "Note: Same image digest as RC, just different tags"
+          echo "Digest: sha256:$(echo -n "${LAST_RC}" | sha256sum | cut -d' ' -f1)"
+          echo ""
+          echo "===================================="
+          
+          echo "final_tag=${FINAL_VERSION}" >> $GITHUB_OUTPUT
+
+      # Update main CHANGELOG.md
+      - name: 📝 Update main CHANGELOG.md
+        run: |
+          # Prepend new release to main CHANGELOG.md
+          if [ -f CHANGELOG.md ]; then
+            cat CHANGELOG_RELEASE.md > CHANGELOG_NEW.md
+            echo "" >> CHANGELOG_NEW.md
+            echo "---" >> CHANGELOG_NEW.md
+            echo "" >> CHANGELOG_NEW.md
+            cat CHANGELOG.md >> CHANGELOG_NEW.md
+            mv CHANGELOG_NEW.md CHANGELOG.md
+          else
+            mv CHANGELOG_RELEASE.md CHANGELOG.md
+          fi
+          
+          rm -f CHANGELOG_RELEASE.md
+
+      # Remove release.json from main (cleanup)
+      - name: 🧹 Clean up release.json
+        run: |
+          rm -f release.json
+          echo "✅ Removed release.json from main branch"
+
+      # Commit all changes
+      - name: 💾 Commit version updates
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          git add package.json CHANGELOG.md
+          git rm -f release.json 2>/dev/null || true
+          
+          git commit -m "chore(release): Release v${{ steps.release-info.outputs.final_version }}
+          
+          - Base: v${{ steps.release-info.outputs.base_version }}
+          - RC builds: ${{ steps.release-info.outputs.rc_count }}
+          - PRs merged: ${{ steps.release-info.outputs.pr_count }}
+          
+          [skip ci]"
+          
+          git push origin main
+
+      # Create GitHub Release
+      - name: 🎉 Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.release-info.outputs.final_version }}
+          name: v${{ steps.release-info.outputs.final_version }}
+          body_path: ${{ steps.changelog.outputs.changelog_path }}
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+
+      # Create job summary
+      - name: 📊 Create job summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          # 🚢 Production Release v${{ steps.release-info.outputs.final_version }}
+          
+          ## Release Overview
+          | Property | Value |
+          |----------|-------|
+          | Version | \`v${{ steps.release-info.outputs.final_version }}\` |
+          | Base Version | \`v${{ steps.release-info.outputs.base_version }}\` |
+          | Release Branch | \`${{ github.event.pull_request.head.ref }}\` |
+          | RC Builds | ${{ steps.release-info.outputs.rc_count }} |
+          | PRs Merged | ${{ steps.release-info.outputs.pr_count }} |
+          
+          ## Changes
+          | Type | Count |
+          |------|-------|
+          | 🚀 Features | ${{ steps.release-info.outputs.feature_count }} |
+          | 🐛 Fixes | ${{ steps.release-info.outputs.fix_count }} |
+          | ⚠️ Breaking | ${{ steps.release-info.outputs.breaking_count }} |
+          
+          ## 🐳 Docker Operations (Simulated)
+          | Operation | Details |
+          |-----------|---------|
+          | Strategy | **RETAG ONLY** (No Rebuild) |
+          | Source RC | \`${{ steps.release-info.outputs.last_rc_version }}\` |
+          | Production Tags | \`v${{ steps.release-info.outputs.final_version }}\`, \`latest\`, \`stable\` |
+          | Registry | \`${ECR_REGISTRY}/myapp\` |
+          
+          ## Artifacts
+          - ✅ GitHub Release created
+          - ✅ package.json updated
+          - ✅ CHANGELOG.md updated
+          - ✅ release.json removed (cleanup)
+          
+          ## Deployment
+          Production deployment can now proceed with tag \`v${{ steps.release-info.outputs.final_version }}\`
+          
+          ---
+          _Released by @${{ github.actor }} at $(date -u +"%Y-%m-%d %H:%M:%S UTC")_
+          EOF

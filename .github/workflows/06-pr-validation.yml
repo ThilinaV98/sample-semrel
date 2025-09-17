@@ -1,0 +1,179 @@
+name: ✅ PR Validation
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, labeled, unlabeled]
+    branches:
+      - main
+      - dev
+      - 'release/**'
+
+permissions:
+  pull-requests: write
+  statuses: write
+
+jobs:
+  validate-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Validate PR title format
+      - name: 🏷️ Validate PR title
+        id: validate-title
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = context.payload.pull_request.title;
+            
+            // Check for conventional commit format
+            const conventionalPattern = /^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?!?: .+/;
+            
+            const isValid = conventionalPattern.test(title);
+            
+            if (!isValid) {
+              core.warning(`PR title doesn't follow conventional commit format: ${title}`);
+            
+              // Add comment to PR
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `⚠️ **PR Title Format**
+            
+                Your PR title doesn't follow the conventional commit format.
+            
+                **Expected format:**
+                \`type(scope)?: description\`
+            
+                **Valid types:**
+                - \`feat\`: New feature
+                - \`fix\`: Bug fix
+                - \`docs\`: Documentation only
+                - \`style\`: Formatting, white-space, etc
+                - \`refactor\`: Code change that neither fixes a bug nor adds a feature
+                - \`perf\`: Performance improvement
+                - \`test\`: Adding tests
+                - \`chore\`: Maintenance
+            
+                **Example:**
+                \`feat(payment): add stripe payment integration\`
+            
+                Please update your PR title to follow this format.`
+              });
+            }
+            
+            core.setOutput('is_valid', isValid);
+            return isValid;
+
+      # Check for version bump labels
+      - name: 🏷️ Check version labels
+        id: check-labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = context.payload.pull_request.labels.map(l => l.name);
+            const targetBranch = context.payload.pull_request.base.ref;
+            
+            // Only check for release and main branches
+            if (targetBranch.startsWith('release/') || targetBranch === 'main') {
+              const bumpLabels = labels.filter(l => 
+                l.startsWith('bump:') || 
+                ['feature', 'fix', 'breaking'].includes(l)
+              );
+            
+              if (bumpLabels.length === 0) {
+                core.warning('No version bump label found');
+            
+                // Add comment suggesting labels
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: `📋 **Version Bump Label Required**
+            
+                  Please add one of the following labels to indicate the version bump type:
+            
+                  - \`bump:major\` - Breaking changes (X.0.0)
+                  - \`bump:minor\` - New features (0.X.0)
+                  - \`bump:patch\` - Bug fixes (0.0.X)
+            
+                  Or use shorthand labels:
+                  - \`breaking\` → major bump
+                  - \`feature\` → minor bump
+                  - \`fix\` → patch bump`
+                });
+            
+                core.setOutput('has_bump_label', false);
+              } else {
+                core.setOutput('has_bump_label', true);
+                core.setOutput('bump_type', bumpLabels[0]);
+              }
+            } else {
+              // No version labels needed for dev
+              core.setOutput('has_bump_label', true);
+            }
+
+      # Validate branch naming
+      - name: 📁 Validate branch name
+        id: validate-branch
+        run: |
+          SOURCE_BRANCH="${{ github.event.pull_request.head.ref }}"
+          TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
+          
+          # Define valid branch patterns
+          VALID_PATTERNS="^(feature|fix|hotfix|refact|docs|test|chore)/[a-z0-9-]+$|^release/[0-9]{6}(-[0-9]+)?-[a-z0-9-]+$"
+          
+          if [[ ! $SOURCE_BRANCH =~ $VALID_PATTERNS ]]; then
+            echo "⚠️ Invalid branch name: $SOURCE_BRANCH"
+            echo "BRANCH_VALID=false" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Valid branch name: $SOURCE_BRANCH"
+            echo "BRANCH_VALID=true" >> $GITHUB_OUTPUT
+          fi
+
+      # Create validation summary
+      - name: 📊 Create validation summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          # 🔍 PR Validation Report
+          
+          ## PR: #${{ github.event.pull_request.number }}
+          
+          ### Validation Results
+          | Check | Status | Details |
+          |-------|--------|---------|
+          | PR Title Format | ${{ steps.validate-title.outputs.is_valid == 'true' && '✅ Valid' || '⚠️ Invalid' }} | Conventional commit format |
+          | Version Label | ${{ steps.check-labels.outputs.has_bump_label == 'true' && '✅ Present' || '⚠️ Missing' }} | ${{ steps.check-labels.outputs.bump_type || 'Required for release/main' }} |
+          | Branch Name | ${{ steps.validate-branch.outputs.BRANCH_VALID == 'true' && '✅ Valid' || '⚠️ Invalid' }} | Must follow naming convention |
+          
+          ### PR Information
+          | Property | Value |
+          |----------|-------|
+          | Title | ${{ github.event.pull_request.title }} |
+          | Source | \`${{ github.event.pull_request.head.ref }}\` |
+          | Target | \`${{ github.event.pull_request.base.ref }}\` |
+          | Author | @${{ github.event.pull_request.user.login }} |
+          
+          ---
+          _Validated at $(date -u +"%Y-%m-%d %H:%M:%S UTC")_
+          EOF
+
+      # Set PR status
+      - name: 📝 Set PR status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const isValid = 
+              ${{ steps.validate-title.outputs.is_valid }} &&
+              ${{ steps.check-labels.outputs.has_bump_label }} &&
+              ${{ steps.validate-branch.outputs.BRANCH_VALID }};
+            
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.payload.pull_request.head.sha,
+              state: isValid ? 'success' : 'pending',
+              target_url: `${context.payload.pull_request.html_url}/checks`,
+              description: isValid ? 'All validations passed' : 'Some validations need attention',
+              context: 'PR Validation'
+            });

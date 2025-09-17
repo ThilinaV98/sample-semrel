@@ -1,0 +1,179 @@
+name: 'Changelog Generator'
+description: 'Generates changelog from release.json or commit history'
+inputs:
+  release-json-path:
+    description: 'Path to release.json file'
+    required: false
+    default: 'release.json'
+  format:
+    description: 'Output format (markdown, json, html)'
+    required: false
+    default: 'markdown'
+  version:
+    description: 'Version for the changelog'
+    required: true
+  include-contributors:
+    description: 'Include contributors section'
+    required: false
+    default: 'true'
+  include-stats:
+    description: 'Include statistics'
+    required: false
+    default: 'true'
+outputs:
+  changelog-path:
+    description: 'Path to generated changelog file'
+    value: ${{ steps.generate.outputs.changelog-path }}
+  changelog-content:
+    description: 'Changelog content'
+    value: ${{ steps.generate.outputs.changelog-content }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        npm install -g conventional-changelog-cli@4.1.0
+        npm install -g @commitlint/cli@18.4.3
+        npm install -g @commitlint/config-conventional@18.4.3
+
+    - name: Generate changelog from release.json
+      id: generate
+      shell: bash
+      run: |
+        VERSION="${{ inputs.version }}"
+        FORMAT="${{ inputs.format }}"
+        RELEASE_JSON="${{ inputs.release-json-path }}"
+        
+        # Check if release.json exists
+        if [ -f "$RELEASE_JSON" ]; then
+          echo "📋 Generating changelog from release.json"
+        
+          # Use Node.js to parse and generate changelog
+          cat << 'EOF' > /tmp/generate-changelog.js
+        const fs = require('fs');
+        const releaseJson = JSON.parse(fs.readFileSync('${{ inputs.release-json-path }}', 'utf8'));
+        
+        let changelog = `# Release v${releaseJson.candidateVersion || '${{ inputs.version }}'}\n\n`;
+        changelog += `> Release Date: ${new Date().toLocaleDateString()}\n\n`;
+        
+        // Add stats if requested
+        if ('${{ inputs.include-stats }}' === 'true') {
+          changelog += `## 📊 Release Statistics\n\n`;
+          changelog += `| Metric | Value |\n`;
+          changelog += `|--------|-------|\n`;
+          changelog += `| Base Version | v${releaseJson.baseVersion} |\n`;
+          changelog += `| New Version | v${releaseJson.candidateVersion} |\n`;
+          changelog += `| RC Builds | ${releaseJson.rcBuilds.length} |\n`;
+          changelog += `| PRs Merged | ${releaseJson.mergedPRs.length} |\n`;
+          changelog += `| Total Changes | ${
+            releaseJson.changelog.features.length + 
+            releaseJson.changelog.fixes.length + 
+            releaseJson.changelog.breaking.length + 
+            releaseJson.changelog.other.length
+          } |\n\n`;
+        }
+        
+        // Breaking changes
+        if (releaseJson.changelog.breaking && releaseJson.changelog.breaking.length > 0) {
+          changelog += `## ⚠️ Breaking Changes\n\n`;
+          releaseJson.changelog.breaking.forEach(item => {
+            changelog += `- ${item.title} (#${item.pr}) @${item.author}\n`;
+          });
+          changelog += `\n`;
+        }
+        
+        // Features
+        if (releaseJson.changelog.features && releaseJson.changelog.features.length > 0) {
+          changelog += `## 🚀 New Features\n\n`;
+          releaseJson.changelog.features.forEach(item => {
+            changelog += `- ${item.title} (#${item.pr}) @${item.author}\n`;
+          });
+          changelog += `\n`;
+        }
+        
+        // Bug fixes
+        if (releaseJson.changelog.fixes && releaseJson.changelog.fixes.length > 0) {
+          changelog += `## 🐛 Bug Fixes\n\n`;
+          releaseJson.changelog.fixes.forEach(item => {
+            changelog += `- ${item.title} (#${item.pr}) @${item.author}\n`;
+          });
+          changelog += `\n`;
+        }
+        
+        // Other changes
+        if (releaseJson.changelog.other && releaseJson.changelog.other.length > 0) {
+          changelog += `## 📝 Other Changes\n\n`;
+          releaseJson.changelog.other.forEach(item => {
+            changelog += `- ${item.title} (#${item.pr}) @${item.author}\n`;
+          });
+          changelog += `\n`;
+        }
+        
+        // Contributors
+        if ('${{ inputs.include-contributors }}' === 'true') {
+          const contributors = new Set();
+          const allChanges = [
+            ...(releaseJson.changelog.features || []),
+            ...(releaseJson.changelog.fixes || []),
+            ...(releaseJson.changelog.breaking || []),
+            ...(releaseJson.changelog.other || [])
+          ];
+        
+          allChanges.forEach(item => {
+            if (item.author) contributors.add(item.author);
+          });
+        
+          if (contributors.size > 0) {
+            changelog += `## 👥 Contributors\n\n`;
+            changelog += `Thanks to: ${Array.from(contributors).map(c => `@${c}`).join(', ')}\n\n`;
+          }
+        }
+        
+        // RC Build history
+        if (releaseJson.rcBuilds && releaseJson.rcBuilds.length > 0) {
+          changelog += `## 🏗️ Build History\n\n`;
+          changelog += `| RC Version | PR | Author | Date |\n`;
+          changelog += `|------------|-----|---------|-------|\n`;
+          releaseJson.rcBuilds.forEach(build => {
+            const date = new Date(build.timestamp).toLocaleDateString();
+            changelog += `| ${build.version} | #${build.pr.number} | @${build.pr.author} | ${date} |\n`;
+          });
+          changelog += `\n`;
+        }
+        
+        fs.writeFileSync('CHANGELOG.md', changelog);
+        console.log(changelog);
+        EOF
+        
+          node /tmp/generate-changelog.js
+        
+        else
+          echo "📋 Generating changelog from commit history"
+        
+          # Create temporary package.json for conventional-changelog
+          echo "{\"name\": \"temp\", \"version\": \"$VERSION\"}" > temp-package.json
+        
+          # Generate using conventional-changelog
+          npx conventional-changelog -p conventionalcommits -i CHANGELOG.md -s -r 0 \
+            --pkg temp-package.json
+        
+          rm temp-package.json
+        fi
+        
+        # Set outputs
+        echo "changelog-path=CHANGELOG.md" >> $GITHUB_OUTPUT
+        
+        # Read content for output (first 1000 chars)
+        CONTENT=$(head -c 1000 CHANGELOG.md)
+        echo "changelog-content<<EOF" >> $GITHUB_OUTPUT
+        echo "$CONTENT" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+        echo "✅ Changelog generated successfully"

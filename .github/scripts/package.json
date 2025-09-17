@@ -1,0 +1,20 @@
+{
+  "name": "github-action-scripts",
+  "version": "1.0.0",
+  "description": "Helper scripts for GitHub Actions workflows",
+  "private": true,
+  "scripts": {
+    "bump-version": "node bump-version.js",
+    "generate-changelog": "node generate-changelog.js",
+    "update-release-json": "node update-release-json.js"
+  },
+  "dependencies": {
+    "semver": "^7.5.4",
+    "conventional-changelog-cli": "^4.1.0",
+    "@commitlint/cli": "^18.4.3",
+    "@commitlint/config-conventional": "^18.4.3"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

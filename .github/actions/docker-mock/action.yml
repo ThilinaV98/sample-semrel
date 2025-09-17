@@ -1,0 +1,212 @@
+name: 'Docker Operations Mock'
+description: 'Simulates Docker build, tag, and push operations with detailed logging'
+inputs:
+  operation:
+    description: 'Operation type (build, retag, push)'
+    required: true
+  image-name:
+    description: 'Docker image name'
+    required: false
+    default: 'myapp'
+  registry:
+    description: 'Docker registry URL'
+    required: false
+    default: '123456789.dkr.ecr.us-east-1.amazonaws.com'
+  version-tag:
+    description: 'Version tag for the image'
+    required: true
+  source-tag:
+    description: 'Source tag for retag operations'
+    required: false
+  additional-tags:
+    description: 'Comma-separated list of additional tags'
+    required: false
+    default: ''
+  build-args:
+    description: 'JSON object of build arguments'
+    required: false
+    default: '{}'
+  is-production:
+    description: 'Whether this is a production build'
+    required: false
+    default: 'false'
+outputs:
+  mock-digest:
+    description: 'Simulated image digest'
+    value: ${{ steps.simulate.outputs.digest }}
+  full-image-uri:
+    description: 'Full image URI with tag'
+    value: ${{ steps.simulate.outputs.image-uri }}
+  operation-summary:
+    description: 'Summary of operations performed'
+    value: ${{ steps.simulate.outputs.summary }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Simulate Docker operations
+      id: simulate
+      shell: bash
+      run: |
+        OPERATION="${{ inputs.operation }}"
+        IMAGE="${{ inputs.image-name }}"
+        REGISTRY="${{ inputs.registry }}"
+        VERSION="${{ inputs.version-tag }}"
+        SOURCE="${{ inputs.source-tag }}"
+        ADDITIONAL_TAGS="${{ inputs.additional-tags }}"
+        BUILD_ARGS='${{ inputs.build-args }}'
+        IS_PROD="${{ inputs.is-production }}"
+        
+        echo "===================================="
+        echo "🐳 DOCKER OPERATION SIMULATION"
+        echo "===================================="
+        echo ""
+        echo "Operation: ${OPERATION^^}"
+        echo "Registry: $REGISTRY"
+        echo "Image: $IMAGE"
+        echo "Version: $VERSION"
+        echo ""
+        
+        case "$OPERATION" in
+          "build")
+            echo "📦 BUILD SIMULATION"
+            echo "==================="
+            echo ""
+            echo "Would execute:"
+            echo "  docker build -t ${IMAGE}:${VERSION} \\"
+        
+            # Parse and display build args
+            if [ "$BUILD_ARGS" != "{}" ]; then
+              echo "$BUILD_ARGS" | jq -r 'to_entries[] | "    --build-arg \(.key)=\(.value) \\"'
+            fi
+        
+            echo "    --build-arg VERSION=${VERSION} \\"
+            echo "    --build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \\"
+            echo "    --build-arg VCS_REF=${GITHUB_SHA:-unknown} \\"
+            echo "    --label org.opencontainers.image.version=${VERSION} \\"
+            echo "    --label org.opencontainers.image.created=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \\"
+            echo "    --label org.opencontainers.image.revision=${GITHUB_SHA:-unknown} \\"
+            echo "    ."
+            echo ""
+            echo "Build context: $(pwd)"
+            echo "Dockerfile: ./Dockerfile"
+            echo ""
+        
+            if [ "$IS_PROD" = "true" ]; then
+              echo "🏭 PRODUCTION BUILD FLAGS:"
+              echo "  - Multi-stage build optimized for size"
+              echo "  - Security scanning enabled"
+              echo "  - Layer caching optimized"
+            else
+              echo "🧪 DEVELOPMENT BUILD FLAGS:"
+              echo "  - Debug symbols included"
+              echo "  - Source maps enabled"
+              echo "  - Hot reload capable"
+            fi
+            ;;
+        
+          "retag")
+            echo "🏷️ RETAG SIMULATION (NO REBUILD)"
+            echo "================================="
+            echo ""
+            echo "Source Image: ${SOURCE}"
+            echo "Target Version: ${VERSION}"
+            echo ""
+            echo "Would execute:"
+            echo "  # Pull by digest to ensure exact image"
+            echo "  docker pull ${REGISTRY}/${IMAGE}:${SOURCE}"
+            echo "  DIGEST=\$(docker inspect ${REGISTRY}/${IMAGE}:${SOURCE} --format='{{index .RepoDigests 0}}')"
+            echo "  "
+            echo "  # Retag to new version (no rebuild)"
+            echo "  docker tag ${REGISTRY}/${IMAGE}@\${DIGEST} ${REGISTRY}/${IMAGE}:${VERSION}"
+        
+            if [ -n "$ADDITIONAL_TAGS" ]; then
+              IFS=',' read -ra TAGS <<< "$ADDITIONAL_TAGS"
+              for TAG in "${TAGS[@]}"; do
+                TAG=$(echo "$TAG" | xargs)  # Trim whitespace
+                echo "  docker tag ${REGISTRY}/${IMAGE}@\${DIGEST} ${REGISTRY}/${IMAGE}:${TAG}"
+              done
+            fi
+            echo ""
+            echo "⚠️ NOTE: Using digest ensures the EXACT same image"
+            echo "         No rebuild occurs - only tag metadata changes"
+            ;;
+        
+          "push")
+            echo "📤 PUSH SIMULATION"
+            echo "=================="
+            echo ""
+            echo "Would push to ECR:"
+            echo "  docker push ${REGISTRY}/${IMAGE}:${VERSION}"
+        
+            if [ -n "$ADDITIONAL_TAGS" ]; then
+              IFS=',' read -ra TAGS <<< "$ADDITIONAL_TAGS"
+              for TAG in "${TAGS[@]}"; do
+                TAG=$(echo "$TAG" | xargs)  # Trim whitespace
+                echo "  docker push ${REGISTRY}/${IMAGE}:${TAG}"
+              done
+            fi
+            echo ""
+            echo "Expected behavior:"
+            echo "  - Image layers uploaded to ECR"
+            echo "  - Manifest created/updated"
+            echo "  - Tags applied in registry"
+            echo "  - Vulnerability scanning triggered (if enabled)"
+            ;;
+        
+          *)
+            echo "❌ Unknown operation: $OPERATION"
+            exit 1
+            ;;
+        esac
+        
+        # Generate mock digest
+        MOCK_DIGEST="sha256:$(echo -n "${VERSION}-${OPERATION}-${GITHUB_SHA:-local}" | sha256sum | cut -d' ' -f1)"
+        echo ""
+        echo "===================================="
+        echo "📊 OPERATION SUMMARY"
+        echo "===================================="
+        echo ""
+        echo "Image URI: ${REGISTRY}/${IMAGE}:${VERSION}"
+        echo "Mock Digest: ${MOCK_DIGEST}"
+        echo "Tags Applied: ${VERSION}${ADDITIONAL_TAGS:+, }${ADDITIONAL_TAGS}"
+        echo "Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+        echo ""
+        
+        # ECR specific information
+        echo "📦 ECR DETAILS:"
+        echo "  Repository: ${IMAGE}"
+        echo "  Registry ID: $(echo $REGISTRY | cut -d'.' -f1)"
+        echo "  Region: $(echo $REGISTRY | grep -oE '[a-z]+-[a-z]+-[0-9]+')"
+        echo ""
+        
+        # Estimated metrics
+        echo "📈 ESTIMATED METRICS:"
+        echo "  Image Size: ~$(shuf -i 50-200 -n 1)MB"
+        echo "  Layers: $(shuf -i 10-30 -n 1)"
+        echo "  Push Duration: ~$(shuf -i 10-60 -n 1)s"
+        echo ""
+        echo "===================================="
+        
+        # Set outputs
+        echo "digest=${MOCK_DIGEST}" >> $GITHUB_OUTPUT
+        echo "image-uri=${REGISTRY}/${IMAGE}:${VERSION}" >> $GITHUB_OUTPUT
+        
+        SUMMARY="Operation: ${OPERATION}, Image: ${REGISTRY}/${IMAGE}:${VERSION}, Digest: ${MOCK_DIGEST}"
+        echo "summary=${SUMMARY}" >> $GITHUB_OUTPUT
+
+    - name: Generate job summary
+      shell: bash
+      run: |
+        cat >> $GITHUB_STEP_SUMMARY << EOF
+        ### 🐳 Docker Operation: ${{ inputs.operation }}
+        
+        | Property | Value |
+        |----------|-------|
+        | Registry | \`${{ inputs.registry }}\` |
+        | Image | \`${{ inputs.image-name }}\` |
+        | Version | \`${{ inputs.version-tag }}\` |
+        | Mock Digest | \`${{ steps.simulate.outputs.digest }}\` |
+        | Full URI | \`${{ steps.simulate.outputs.image-uri }}\` |
+        
+        EOF

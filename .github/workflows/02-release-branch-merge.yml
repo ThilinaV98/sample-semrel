@@ -1,0 +1,314 @@
+name: 🔄 Process Release Branch Merge
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - 'release/**'
+
+permissions:
+  contents: write
+  pull-requests: read
+  issues: read
+
+jobs:
+  process-merge:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout with full history for changelog
+      - name: 📥 Checkout release branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.base.ref }}
+
+      # Setup Node.js
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Install required tools
+      - name: 📦 Install dependencies
+        run: |
+          npm install -g conventional-changelog-cli@4.1.0
+          npm install -g semver@7.5.4
+          npm install -g @commitlint/cli@18.4.3
+          npm install -g @commitlint/config-conventional@18.4.3
+
+      # Read current release.json
+      - name: 📖 Read release.json
+        id: read-release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const releaseJson = JSON.parse(fs.readFileSync('release.json', 'utf8'));
+            
+            core.setOutput('current_version', releaseJson.currentVersion);
+            core.setOutput('base_version', releaseJson.baseVersion);
+            core.setOutput('rc_count', releaseJson.rcBuilds.length);
+            
+            return releaseJson;
+
+      # Determine version bump from PR labels
+      - name: 🏷️ Determine version bump
+        id: version-bump
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const labels = context.payload.pull_request.labels.map(l => l.name);
+            const title = context.payload.pull_request.title;
+            
+            let bumpType = 'patch';  // default
+            
+            // Check labels first
+            if (labels.includes('bump:major') || labels.includes('breaking')) {
+              bumpType = 'major';
+            } else if (labels.includes('bump:minor') || labels.includes('feature')) {
+              bumpType = 'minor';
+            } else if (labels.includes('bump:patch') || labels.includes('fix')) {
+              bumpType = 'patch';
+            } else {
+              // Analyze PR title for conventional commit format
+              if (title.match(/^feat(\(.+\))?!:/)) {
+                bumpType = 'major';  // feat! indicates breaking
+              } else if (title.match(/^feat(\(.+\))?:/)) {
+                bumpType = 'minor';
+              } else if (title.match(/^fix(\(.+\))?:/)) {
+                bumpType = 'patch';
+              }
+            }
+            
+            core.setOutput('bump_type', bumpType);
+            console.log(`Version bump type: ${bumpType}`);
+            console.log(`Based on labels: ${labels.join(', ')}`);
+            console.log(`PR title: ${title}`);
+            
+            return bumpType;
+
+      # Calculate new version
+      - name: 🔢 Calculate new version
+        id: new-version
+        run: |
+          CURRENT="${{ steps.read-release.outputs.current_version }}"
+          BUMP="${{ steps.version-bump.outputs.bump_type }}"
+          
+          NEW_VERSION=$(npx semver ${CURRENT} -i ${BUMP})
+          echo "NEW_VERSION=${NEW_VERSION}" >> $GITHUB_OUTPUT
+          
+          # Generate RC tag
+          DATE=$(date +%d%m%y)
+          TIMESTAMP=$(date +%s)
+          BRANCH_NAME="${{ github.event.pull_request.base.ref }}"
+          
+          # Extract date from branch name if present
+          if [[ $BRANCH_NAME =~ ([0-9]{6}) ]]; then
+            DATE="${BASH_REMATCH[1]}"
+          fi
+          
+          # Check if multiple releases same day (look for -n in branch name)
+          if [[ $BRANCH_NAME =~ ${DATE}-([0-9]+)- ]]; then
+            DAY_SUFFIX="-${BASH_REMATCH[1]}"
+          else
+            DAY_SUFFIX=""
+          fi
+          
+          RC_VERSION="v${NEW_VERSION}-rc-${DATE}${DAY_SUFFIX}.${TIMESTAMP}"
+          echo "RC_VERSION=${RC_VERSION}" >> $GITHUB_OUTPUT
+          
+          echo "📊 Version calculation:"
+          echo "  Current: ${CURRENT}"
+          echo "  Bump type: ${BUMP}"
+          echo "  New version: ${NEW_VERSION}"
+          echo "  RC tag: ${RC_VERSION}"
+
+      # Update release.json with new version and PR info
+      - name: 📝 Update release.json
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const releaseJson = JSON.parse(fs.readFileSync('release.json', 'utf8'));
+            
+            // Update version
+            releaseJson.currentVersion = '${{ steps.new-version.outputs.NEW_VERSION }}';
+            releaseJson.candidateVersion = '${{ steps.new-version.outputs.NEW_VERSION }}';
+            
+            // Add RC build entry
+            const rcBuild = {
+              version: '${{ steps.new-version.outputs.RC_VERSION }}',
+              pr: {
+                number: ${{ github.event.pull_request.number }},
+                title: `${{ github.event.pull_request.title }}`,
+                author: '${{ github.event.pull_request.user.login }}',
+                url: '${{ github.event.pull_request.html_url }}'
+              },
+              commit: '${{ github.event.pull_request.merge_commit_sha }}'.substring(0, 7),
+              timestamp: new Date().toISOString(),
+              bumpType: '${{ steps.version-bump.outputs.bump_type }}'
+            };
+            
+            releaseJson.rcBuilds.push(rcBuild);
+            
+            // Update changelog based on PR type
+            const title = `${{ github.event.pull_request.title }}`;
+            const changeEntry = {
+              pr: ${{ github.event.pull_request.number }},
+              title: title,
+              author: '${{ github.event.pull_request.user.login }}',
+              timestamp: new Date().toISOString()
+            };
+            
+            // Categorize change
+            if (title.match(/^feat/i) || title.includes('feature')) {
+              releaseJson.changelog.features.push(changeEntry);
+            } else if (title.match(/^fix/i) || title.includes('fix')) {
+              releaseJson.changelog.fixes.push(changeEntry);
+            } else if (title.match(/^break/i) || title.includes('!:')) {
+              releaseJson.changelog.breaking.push(changeEntry);
+            } else {
+              releaseJson.changelog.other.push(changeEntry);
+            }
+            
+            // Add to merged PRs list
+            releaseJson.mergedPRs.push(${{ github.event.pull_request.number }});
+            
+            // Update timestamp
+            releaseJson.lastUpdated = new Date().toISOString();
+            
+            // Write updated file
+            fs.writeFileSync('release.json', JSON.stringify(releaseJson, null, 2));
+            
+            console.log('Updated release.json with new RC build');
+
+      # Generate updated changelog using conventional-changelog
+      - name: 📋 Generate changelog
+        run: |
+          # Create a temporary package.json with new version for changelog generation
+          echo '{
+            "name": "release",
+            "version": "${{ steps.new-version.outputs.NEW_VERSION }}"
+          }' > temp-package.json
+          
+          # Generate changelog for this release
+          npx conventional-changelog -p conventionalcommits -i RELEASE_CHANGELOG.md -s -r 0 \
+            --pkg temp-package.json \
+            --context '{"version":"${{ steps.new-version.outputs.NEW_VERSION }}"}'
+          
+          # Add RC information to changelog
+          cat >> RELEASE_CHANGELOG.md << EOF
+          
+          ## 🏗️ RC Build Information
+          - **RC Version**: \`${{ steps.new-version.outputs.RC_VERSION }}\`
+          - **PR**: #${{ github.event.pull_request.number }}
+          - **Author**: @${{ github.event.pull_request.user.login }}
+          - **Bump Type**: ${{ steps.version-bump.outputs.bump_type }}
+          
+          EOF
+          
+          rm temp-package.json
+
+      # Mock Docker build operations
+      - name: 🐳 Mock Docker Build & Push
+        id: docker-mock
+        run: |
+          RC_VERSION="${{ steps.new-version.outputs.RC_VERSION }}"
+          
+          echo "===================================="
+          echo "🐳 DOCKER BUILD SIMULATION"
+          echo "===================================="
+          echo ""
+          echo "Would execute: docker build -t myapp:${RC_VERSION} ."
+          echo "Build context: $(pwd)"
+          echo "Dockerfile: ./Dockerfile"
+          echo ""
+          echo "Build args:"
+          echo "  - VERSION=${RC_VERSION}"
+          echo "  - BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          echo "  - VCS_REF=${{ github.event.pull_request.merge_commit_sha }}"
+          echo ""
+          echo "===================================="
+          echo "🏷️ DOCKER TAGGING"
+          echo "===================================="
+          echo ""
+          echo "Would tag as:"
+          echo "  - ${ECR_REGISTRY}/myapp:${RC_VERSION}"
+          echo "  - ${ECR_REGISTRY}/myapp:release-candidate"
+          echo ""
+          echo "===================================="
+          echo "📤 ECR PUSH SIMULATION"
+          echo "===================================="
+          echo ""
+          echo "Would push to ECR:"
+          echo "  - docker push ${ECR_REGISTRY}/myapp:${RC_VERSION}"
+          echo "  - docker push ${ECR_REGISTRY}/myapp:release-candidate"
+          echo ""
+          echo "Expected image digest: sha256:$(echo -n "${RC_VERSION}" | sha256sum | cut -d' ' -f1)"
+          echo ""
+          echo "===================================="
+          
+          # Set outputs for summary
+          echo "rc_tag=${RC_VERSION}" >> $GITHUB_OUTPUT
+          echo "mock_digest=sha256:$(echo -n "${RC_VERSION}" | sha256sum | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+
+      # Commit updated files
+      - name: 💾 Commit updates
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          git add release.json RELEASE_CHANGELOG.md
+          
+          git commit -m "chore(release): Bump to ${{ steps.new-version.outputs.NEW_VERSION }}
+          
+          - PR: #${{ github.event.pull_request.number }}
+          - Bump type: ${{ steps.version-bump.outputs.bump_type }}
+          - RC Version: ${{ steps.new-version.outputs.RC_VERSION }}
+          - Author: @${{ github.event.pull_request.user.login }}"
+          
+          git push
+
+      # Create job summary
+      - name: 📊 Create job summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          # 🔄 Release Branch Merge Processed
+          
+          ## PR Information
+          | Property | Value |
+          |----------|-------|
+          | PR Number | #${{ github.event.pull_request.number }} |
+          | Title | ${{ github.event.pull_request.title }} |
+          | Author | @${{ github.event.pull_request.user.login }} |
+          | Merged By | @${{ github.actor }} |
+          
+          ## Version Changes
+          | Type | Version |
+          |------|---------|
+          | Previous | \`${{ steps.read-release.outputs.current_version }}\` |
+          | Bump Type | \`${{ steps.version-bump.outputs.bump_type }}\` |
+          | New Version | \`${{ steps.new-version.outputs.NEW_VERSION }}\` |
+          | RC Tag | \`${{ steps.new-version.outputs.RC_VERSION }}\` |
+          
+          ## 🐳 Docker Operations (Simulated)
+          | Operation | Details |
+          |-----------|---------|
+          | Build | \`myapp:${{ steps.docker-mock.outputs.rc_tag }}\` |
+          | Tags | \`release-candidate\`, \`${{ steps.docker-mock.outputs.rc_tag }}\` |
+          | Registry | \`${ECR_REGISTRY}/myapp\` |
+          | Digest | \`${{ steps.docker-mock.outputs.mock_digest }}\` |
+          
+          ## Files Updated
+          - ✅ \`release.json\` - Version and RC build info
+          - ✅ \`RELEASE_CHANGELOG.md\` - Updated changelog
+          
+          ## RC Build Count
+          Total RC builds for this release: **${{ steps.read-release.outputs.rc_count }}**
+          
+          ---
+          _Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")_
+          EOF

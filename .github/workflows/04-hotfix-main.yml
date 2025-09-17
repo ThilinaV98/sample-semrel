@@ -1,0 +1,276 @@
+name: 🚨 Hotfix to Production
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+permissions:
+  contents: write
+  packages: write
+  deployments: write
+
+jobs:
+  deploy-hotfix:
+    if: |
+      github.event.pull_request.merged == true &&
+      (startsWith(github.event.pull_request.head.ref, 'hotfix/') ||
+       startsWith(github.event.pull_request.head.ref, 'fix/'))
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout main
+      - name: 📥 Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      # Setup Node.js
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Get current version
+      - name: 📊 Get current version
+        id: current-version
+        run: |
+          CURRENT=$(jq -r '.version' package.json)
+          echo "CURRENT_VERSION=${CURRENT}" >> $GITHUB_OUTPUT
+          echo "Current version: ${CURRENT}"
+
+      # Determine version bump (always patch for hotfix)
+      - name: 🔢 Calculate new version
+        id: new-version
+        run: |
+          CURRENT="${{ steps.current-version.outputs.CURRENT_VERSION }}"
+          
+          # Check PR labels for bump type (default to patch)
+          LABELS='${{ toJSON(github.event.pull_request.labels.*.name) }}'
+          
+          if echo "$LABELS" | grep -q "bump:major"; then
+            BUMP_TYPE="major"
+          elif echo "$LABELS" | grep -q "bump:minor"; then
+            BUMP_TYPE="minor"
+          else
+            BUMP_TYPE="patch"  # Default for hotfixes
+          fi
+          
+          NEW_VERSION=$(npx semver ${CURRENT} -i ${BUMP_TYPE})
+          
+          echo "NEW_VERSION=${NEW_VERSION}" >> $GITHUB_OUTPUT
+          echo "BUMP_TYPE=${BUMP_TYPE}" >> $GITHUB_OUTPUT
+          
+          echo "Version bump: ${CURRENT} → ${NEW_VERSION} (${BUMP_TYPE})"
+
+      # Update package.json
+      - name: 📦 Update package.json
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            
+            packageJson.version = '${{ steps.new-version.outputs.NEW_VERSION }}';
+            
+            fs.writeFileSync('package.json', JSON.stringify(packageJson, null, 2) + '\n');
+            
+            console.log(`Updated package.json to version ${packageJson.version}`);
+
+      # Generate hotfix changelog
+      - name: 📋 Generate hotfix changelog
+        id: changelog
+        run: |
+          cat > HOTFIX_CHANGELOG.md << EOF
+          # Hotfix Release v${{ steps.new-version.outputs.NEW_VERSION }}
+          
+          ## 🚨 Hotfix Information
+          | Property | Value |
+          |----------|-------|
+          | Type | Hotfix |
+          | Previous Version | v${{ steps.current-version.outputs.CURRENT_VERSION }} |
+          | New Version | v${{ steps.new-version.outputs.NEW_VERSION }} |
+          | PR | #${{ github.event.pull_request.number }} |
+          | Author | @${{ github.event.pull_request.user.login }} |
+          
+          ## Changes
+          ${{ github.event.pull_request.title }}
+          
+          ${{ github.event.pull_request.body }}
+          
+          ## Deployment
+          This hotfix requires immediate deployment to production.
+          
+          ---
+          _Released on $(date -u +"%Y-%m-%d %H:%M:%S UTC")_
+          EOF
+          
+          echo "changelog_path=HOTFIX_CHANGELOG.md" >> $GITHUB_OUTPUT
+
+      # Mock Docker build (fresh build for hotfix)
+      - name: 🐳 Mock Docker Build & Push
+        id: docker-build
+        run: |
+          FINAL_VERSION="v${{ steps.new-version.outputs.NEW_VERSION }}"
+          
+          echo "===================================="
+          echo "🐳 DOCKER BUILD SIMULATION (FRESH BUILD)"
+          echo "===================================="
+          echo ""
+          echo "Build Type: HOTFIX - Fresh build from main"
+          echo ""
+          echo "Would execute:"
+          echo "  docker build -t myapp:${FINAL_VERSION} ."
+          echo ""
+          echo "Build args:"
+          echo "  - VERSION=${FINAL_VERSION}"
+          echo "  - BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          echo "  - VCS_REF=${{ github.sha }}"
+          echo "  - IS_HOTFIX=true"
+          echo ""
+          echo "===================================="
+          echo "🏷️ DOCKER TAGGING"
+          echo "===================================="
+          echo ""
+          echo "Would tag as:"
+          echo "  - ${ECR_REGISTRY}/myapp:${FINAL_VERSION}"
+          echo "  - ${ECR_REGISTRY}/myapp:latest"
+          echo "  - ${ECR_REGISTRY}/myapp:hotfix"
+          echo ""
+          echo "===================================="
+          echo "📤 ECR PUSH SIMULATION"
+          echo "===================================="
+          echo ""
+          echo "Would push to ECR:"
+          echo "  - docker push ${ECR_REGISTRY}/myapp:${FINAL_VERSION}"
+          echo "  - docker push ${ECR_REGISTRY}/myapp:latest"
+          echo "  - docker push ${ECR_REGISTRY}/myapp:hotfix"
+          echo ""
+          echo "New image digest: sha256:$(echo -n "${FINAL_VERSION}-hotfix" | sha256sum | cut -d' ' -f1)"
+          echo ""
+          echo "===================================="
+          
+          echo "final_tag=${FINAL_VERSION}" >> $GITHUB_OUTPUT
+
+      # Update main CHANGELOG.md
+      - name: 📝 Update CHANGELOG.md
+        run: |
+          if [ -f CHANGELOG.md ]; then
+            cat HOTFIX_CHANGELOG.md > CHANGELOG_NEW.md
+            echo "" >> CHANGELOG_NEW.md
+            echo "---" >> CHANGELOG_NEW.md
+            echo "" >> CHANGELOG_NEW.md
+            cat CHANGELOG.md >> CHANGELOG_NEW.md
+            mv CHANGELOG_NEW.md CHANGELOG.md
+          else
+            mv HOTFIX_CHANGELOG.md CHANGELOG.md
+          fi
+          
+          rm -f HOTFIX_CHANGELOG.md
+
+      # Commit changes
+      - name: 💾 Commit version updates
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          git add package.json CHANGELOG.md
+          
+          git commit -m "chore(hotfix): Release v${{ steps.new-version.outputs.NEW_VERSION }}
+          
+          Hotfix: ${{ github.event.pull_request.title }}
+          PR: #${{ github.event.pull_request.number }}
+          
+          [skip ci]"
+          
+          git push origin main
+
+      # Create GitHub Release
+      - name: 🎉 Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.new-version.outputs.NEW_VERSION }}
+          name: v${{ steps.new-version.outputs.NEW_VERSION }} (Hotfix)
+          body_path: ${{ steps.changelog.outputs.changelog_path }}
+          draft: false
+          prerelease: false
+
+      # Trigger backports
+      - name: 🔄 Create backport issues
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // Find active release branches
+            const branches = await github.rest.repos.listBranches({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            
+            const releaseBranches = branches.data.filter(b => 
+              b.name.startsWith('release/')
+            );
+            
+            for (const branch of releaseBranches) {
+              // Create backport issue
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `[Backport] Hotfix v${{ steps.new-version.outputs.NEW_VERSION }} to ${branch.name}`,
+                body: `## Backport Required
+            
+                The hotfix from PR #${{ github.event.pull_request.number }} needs to be backported to \`${branch.name}\`.
+            
+                ### Original PR
+                - PR: #${{ github.event.pull_request.number }}
+                - Title: ${{ github.event.pull_request.title }}
+                - Version: v${{ steps.new-version.outputs.NEW_VERSION }}
+            
+                ### Action Required
+                Cherry-pick the changes to ${branch.name} or create a new PR targeting that branch.`,
+                labels: ['backport', 'hotfix']
+              });
+            }
+            
+            console.log(`Created backport issues for ${releaseBranches.length} release branches`);
+
+      # Create job summary
+      - name: 📊 Create job summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          # 🚨 Hotfix Released: v${{ steps.new-version.outputs.NEW_VERSION }}
+          
+          ## Hotfix Details
+          | Property | Value |
+          |----------|-------|
+          | Previous Version | \`v${{ steps.current-version.outputs.CURRENT_VERSION }}\` |
+          | New Version | \`v${{ steps.new-version.outputs.NEW_VERSION }}\` |
+          | Bump Type | \`${{ steps.new-version.outputs.BUMP_TYPE }}\` |
+          | PR | #${{ github.event.pull_request.number }} |
+          | Author | @${{ github.event.pull_request.user.login }} |
+          
+          ## 🐳 Docker Operations (Simulated)
+          | Operation | Details |
+          |-----------|---------|
+          | Strategy | **FRESH BUILD** (Hotfix) |
+          | Build From | \`main\` branch |
+          | Production Tags | \`v${{ steps.new-version.outputs.NEW_VERSION }}\`, \`latest\`, \`hotfix\` |
+          | Registry | \`${ECR_REGISTRY}/myapp\` |
+          
+          ## Actions Taken
+          - ✅ Version bumped in package.json
+          - ✅ CHANGELOG.md updated
+          - ✅ GitHub Release created
+          - ✅ Backport issues created for active release branches
+          - 🐳 Docker image would be built and pushed
+          
+          ## ⚠️ Immediate Action Required
+          **Deploy this hotfix to production immediately!**
+          
+          Tag: \`v${{ steps.new-version.outputs.NEW_VERSION }}\`
+          
+          ---
+          _Hotfix deployed by @${{ github.actor }} at $(date -u +"%Y-%m-%d %H:%M:%S UTC")_
+          EOF

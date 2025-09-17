@@ -1,0 +1,143 @@
+name: 🧪 Dev Branch Integration
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - dev
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  dev-integration:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout dev branch
+      - name: 📥 Checkout dev branch
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+
+      # Log PR information
+      - name: 📊 Log PR information
+        id: pr-info
+        run: |
+          echo "PR #${{ github.event.pull_request.number }} merged to dev"
+          echo "Title: ${{ github.event.pull_request.title }}"
+          echo "Author: ${{ github.event.pull_request.user.login }}"
+          echo "Source branch: ${{ github.event.pull_request.head.ref }}"
+          
+          # Determine branch type
+          SOURCE_BRANCH="${{ github.event.pull_request.head.ref }}"
+          if [[ $SOURCE_BRANCH == feature/* ]]; then
+            BRANCH_TYPE="feature"
+          elif [[ $SOURCE_BRANCH == fix/* ]]; then
+            BRANCH_TYPE="fix"
+          elif [[ $SOURCE_BRANCH == refact/* ]]; then
+            BRANCH_TYPE="refactor"
+          else
+            BRANCH_TYPE="other"
+          fi
+          
+          echo "BRANCH_TYPE=${BRANCH_TYPE}" >> $GITHUB_OUTPUT
+
+      # Mock Docker build for dev
+      - name: 🐳 Mock Docker Build & Push (Dev)
+        id: docker-dev
+        run: |
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          DEV_TAG="dev-${TIMESTAMP}"
+          COMMIT_SHA="${{ github.event.pull_request.merge_commit_sha }}"
+          SHORT_SHA=${COMMIT_SHA:0:7}
+          
+          echo "===================================="
+          echo "🐳 DEV DOCKER BUILD SIMULATION"
+          echo "===================================="
+          echo ""
+          echo "Environment: DEVELOPMENT"
+          echo "No version bump - continuous integration"
+          echo ""
+          echo "Would execute:"
+          echo "  docker build -t myapp:${DEV_TAG} ."
+          echo "  docker build -t myapp:dev-latest ."
+          echo "  docker build -t myapp:dev-${SHORT_SHA} ."
+          echo ""
+          echo "Build args:"
+          echo "  - ENVIRONMENT=development"
+          echo "  - BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          echo "  - VCS_REF=${COMMIT_SHA}"
+          echo "  - PR_NUMBER=${{ github.event.pull_request.number }}"
+          echo "  - BRANCH_TYPE=${{ steps.pr-info.outputs.BRANCH_TYPE }}"
+          echo ""
+          echo "===================================="
+          echo "📤 ECR PUSH SIMULATION"
+          echo "===================================="
+          echo ""
+          echo "Would push to ECR:"
+          echo "  - docker push ${ECR_REGISTRY}/myapp:${DEV_TAG}"
+          echo "  - docker push ${ECR_REGISTRY}/myapp:dev-latest"
+          echo "  - docker push ${ECR_REGISTRY}/myapp:dev-${SHORT_SHA}"
+          echo ""
+          echo "Expected digest: sha256:$(echo -n "${DEV_TAG}" | sha256sum | cut -d' ' -f1)"
+          echo ""
+          echo "===================================="
+          echo "🔄 CONTINUOUS DEPLOYMENT"
+          echo "===================================="
+          echo ""
+          echo "Would trigger deployment to:"
+          echo "  - Environment: dev"
+          echo "  - Namespace: development"
+          echo "  - Image: ${ECR_REGISTRY}/myapp:${DEV_TAG}"
+          echo ""
+          echo "===================================="
+          
+          echo "dev_tag=${DEV_TAG}" >> $GITHUB_OUTPUT
+          echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
+
+      # Generate dev activity log
+      - name: 📝 Log dev activity
+        run: |
+          # This would append to a dev-activity.log in real implementation
+          echo "[$(date -u +"%Y-%m-%d %H:%M:%S")] PR #${{ github.event.pull_request.number }} merged" >> /tmp/dev-activity.log
+          echo "  Type: ${{ steps.pr-info.outputs.BRANCH_TYPE }}" >> /tmp/dev-activity.log
+          echo "  Author: @${{ github.event.pull_request.user.login }}" >> /tmp/dev-activity.log
+          echo "  Docker tag: ${{ steps.docker-dev.outputs.dev_tag }}" >> /tmp/dev-activity.log
+          echo "" >> /tmp/dev-activity.log
+          
+          cat /tmp/dev-activity.log
+
+      # Create job summary
+      - name: 📊 Create job summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          # 🧪 Dev Integration Complete
+          
+          ## PR Information
+          | Property | Value |
+          |----------|-------|
+          | PR Number | #${{ github.event.pull_request.number }} |
+          | Title | ${{ github.event.pull_request.title }} |
+          | Author | @${{ github.event.pull_request.user.login }} |
+          | Branch Type | ${{ steps.pr-info.outputs.BRANCH_TYPE }} |
+          
+          ## 🐳 Docker Operations (Simulated)
+          | Operation | Details |
+          |-----------|---------|
+          | Build Type | Development (Continuous) |
+          | Primary Tag | \`${{ steps.docker-dev.outputs.dev_tag }}\` |
+          | Additional Tags | \`dev-latest\`, \`dev-${{ steps.docker-dev.outputs.short_sha }}\` |
+          | Registry | \`${ECR_REGISTRY}/myapp\` |
+          
+          ## Version Information
+          ℹ️ **No version bump** - Dev branch uses continuous integration
+          
+          ## Deployment
+          Would auto-deploy to development environment with tag \`${{ steps.docker-dev.outputs.dev_tag }}\`
+          
+          ---
+          _Merged by @${{ github.actor }} at $(date -u +"%Y-%m-%d %H:%M:%S UTC")_
+          EOF

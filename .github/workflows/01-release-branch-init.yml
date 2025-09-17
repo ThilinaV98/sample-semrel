@@ -1,0 +1,170 @@
+name: 🚀 Initialize Release Branch
+
+on:
+  create:
+    branches:
+      - 'release/**'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  initialize:
+    if: github.event.ref_type == 'branch' && startsWith(github.event.ref, 'release/')
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the newly created branch
+      - name: 📥 Checkout new branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.ref }}
+          fetch-depth: 0  # Need full history for changelog
+
+      # Setup Node.js for our scripts
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # Install dependencies for changelog generation
+      - name: 📦 Install dependencies
+        run: |
+          npm install -g conventional-changelog-cli@4.1.0
+          npm install -g conventional-recommended-bump@9.0.0
+          npm install -g semver@7.5.4
+
+      # Get the base version from main branch
+      - name: 🔍 Get base version from main
+        id: base-version
+        run: |
+          git fetch origin main
+          BASE_VERSION=$(git show origin/main:package.json | jq -r '.version')
+          echo "BASE_VERSION=${BASE_VERSION}" >> $GITHUB_OUTPUT
+          echo "📌 Base version from main: ${BASE_VERSION}"
+
+      # Calculate anticipated version bump
+      - name: 🎯 Calculate candidate version
+        id: candidate-version
+        run: |
+          # Use conventional-recommended-bump to suggest version
+          BUMP_TYPE=$(conventional-recommended-bump -p conventionalcommits)
+          
+          # Default to minor if no recommendation
+          BUMP_TYPE=${BUMP_TYPE:-minor}
+          
+          # Calculate new version
+          NEW_VERSION=$(npx semver ${{ steps.base-version.outputs.BASE_VERSION }} -i ${BUMP_TYPE})
+          
+          echo "CANDIDATE_VERSION=${NEW_VERSION}" >> $GITHUB_OUTPUT
+          echo "BUMP_TYPE=${BUMP_TYPE}" >> $GITHUB_OUTPUT
+          echo "📈 Suggested bump: ${BUMP_TYPE} → ${NEW_VERSION}"
+
+      # Create release.json
+      - name: 📝 Create release.json
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Extract date from branch name (DDMMYY format)
+            const branchName = '${{ github.event.ref }}'.replace('release/', '');
+            const dateMatch = branchName.match(/(\d{6})/);
+            const releaseDate = dateMatch ? dateMatch[1] : new Date().toISOString().split('T')[0];
+            
+            const releaseJson = {
+              baseVersion: '${{ steps.base-version.outputs.BASE_VERSION }}',
+              currentVersion: '${{ steps.base-version.outputs.BASE_VERSION }}',
+              candidateVersion: '${{ steps.candidate-version.outputs.CANDIDATE_VERSION }}',
+              releaseDate: releaseDate,
+              branchName: branchName,
+              rcBuilds: [],
+              changelog: {
+                features: [],
+                fixes: [],
+                breaking: [],
+                other: []
+              },
+              mergedPRs: [],
+              lastUpdated: new Date().toISOString(),
+              metadata: {
+                createdBy: '${{ github.actor }}',
+                createdAt: new Date().toISOString(),
+                suggestedBump: '${{ steps.candidate-version.outputs.BUMP_TYPE }}'
+              }
+            };
+            
+            fs.writeFileSync('release.json', JSON.stringify(releaseJson, null, 2));
+            
+            // Log for debugging
+            console.log('Created release.json:');
+            console.log(JSON.stringify(releaseJson, null, 2));
+
+      # Generate initial changelog template
+      - name: 📋 Generate initial changelog
+        run: |
+          cat > RELEASE_CHANGELOG.md << EOF
+          # Release Candidate: v${{ steps.candidate-version.outputs.CANDIDATE_VERSION }}
+          
+          ## 📅 Release Branch: ${{ github.event.ref }}
+          ## 🏷️ Base Version: ${{ steps.base-version.outputs.BASE_VERSION }}
+          ## 🎯 Target Version: ${{ steps.candidate-version.outputs.CANDIDATE_VERSION }}
+          
+          ### 📝 Changes
+          _No changes yet. This will be updated as PRs are merged._
+          
+          ### 🔄 RC Builds
+          _RC builds will appear here as features are merged._
+          
+          ### 👥 Contributors
+          - @${{ github.actor }} (branch creator)
+          
+          ---
+          _Last Updated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")_
+          EOF
+
+      # Commit the files
+      - name: 💾 Commit release files
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          git add release.json RELEASE_CHANGELOG.md
+          git commit -m "chore: Initialize release branch ${{ github.event.ref }}
+          
+          - Base version: ${{ steps.base-version.outputs.BASE_VERSION }}
+          - Target version: ${{ steps.candidate-version.outputs.CANDIDATE_VERSION }}
+          - Suggested bump: ${{ steps.candidate-version.outputs.BUMP_TYPE }}"
+          
+          git push origin ${{ github.event.ref }}
+
+      # Create job summary
+      - name: 📊 Create job summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          # 🚀 Release Branch Initialized
+          
+          ## Branch Information
+          | Property | Value |
+          |----------|-------|
+          | Branch Name | \`${{ github.event.ref }}\` |
+          | Base Version | \`${{ steps.base-version.outputs.BASE_VERSION }}\` |
+          | Target Version | \`${{ steps.candidate-version.outputs.CANDIDATE_VERSION }}\` |
+          | Suggested Bump | \`${{ steps.candidate-version.outputs.BUMP_TYPE }}\` |
+          | Created By | @${{ github.actor }} |
+          
+          ## Files Created
+          - ✅ \`release.json\` - Version tracking file
+          - ✅ \`RELEASE_CHANGELOG.md\` - Changelog template
+          
+          ## Next Steps
+          1. Merge feature branches into this release branch
+          2. Each merge will create an RC build
+          3. When ready, create PR to main for production release
+          
+          ---
+          _Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")_
+          EOF
