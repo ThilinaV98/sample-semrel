@@ -34,6 +34,7 @@ jobs:
       - name: 📦 Install dependencies
         run: |
           npm install -g conventional-changelog-cli@4.1.0
+          npm install -g conventional-changelog-conventionalcommits@9.1.0
           npm install -g semver@7.5.4
           npm install -g @commitlint/cli@18.4.3
           npm install -g @commitlint/config-conventional@18.4.3
