@@ -1,6 +1,6 @@
 {
   "name": "sample-semantic-release",
-  "version": "4.2.0",
+  "version": "0.0.1",
   "description": "Sample project demonstrating semantic versioning and branching strategy",
   "main": "src/index.js",
   "scripts": {
@@ -12,11 +12,7 @@
     "lint:fix": "eslint src test --fix",
     "format": "prettier --write \"src/**/*.js\" \"test/**/*.js\"",
     "format:check": "prettier --check \"src/**/*.js\" \"test/**/*.js\"",
-    "semantic-release": "semantic-release",
-    "test:workflows": "./scripts/test-workflows.sh",
-    "test:workflows:dry": "./scripts/test-workflows.sh --dry-run",
-    "test:workflow": "./scripts/test-single-workflow.sh",
-    "validate:workflows": "./scripts/validate-workflows.sh"
+    "semantic-release": "semantic-release"
   },
   "repository": {
     "type": "git",
